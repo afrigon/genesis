@@ -1,0 +1,21 @@
+set interfaces ethernet {{ wan_interface }} description 'WAN (modem)'
+set interfaces ethernet {{ wan_interface }} address 'dhcpv6'
+set interfaces ethernet {{ wan_interface }} address 'dhcp'
+set interfaces ethernet {{ wan_interface }} ipv6 address autoconf
+set interfaces ethernet {{ wan_interface }} dhcpv6-options pd 0 length '{{ pd_length }}'
+
+{% for name, id in vlans.items() %}
+set interfaces ethernet {{ wan_interface }} dhcpv6-options pd 0 interface {{ lan_interface }}.{{ id }} sla-id '{{ id }}'
+set interfaces ethernet {{ wan_interface }} dhcpv6-options pd 0 interface {{ lan_interface }}.{{ id }} address '1'
+{% endfor %}
+
+set interfaces ethernet {{ wan_backup_interface }} description 'WAN backup (5G) - not configured yet'
+set interfaces ethernet {{ lan_interface }} description 'LAN trunk'
+
+{% for name, id in vlans.items() %}
+set interfaces ethernet {{ lan_interface }} vif {{ id }} description '{{ name }}'
+set interfaces ethernet {{ lan_interface }} vif {{ id }} address '{{ ula_prefix }}:{{ id }}::1/64'
+{% endfor %}
+
+set interfaces ethernet {{ config_interface }} description 'CONFIG (recovery access)'
+set interfaces ethernet {{ config_interface }} address '{{ ula_prefix }}::1/64'

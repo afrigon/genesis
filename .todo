@@ -1,0 +1,36 @@
+# Deferred work
+
+- Remove the trusted VLAN dual-stack (IPv4) once Windows CLAT ships in stable:
+  repo side per the trusted_ipv4 comment in host_vars/vanguard.yml, then on
+  vanguard:
+    delete interfaces ethernet eth2 vif 20 address 10.0.20.1/24
+    delete service dhcp-server
+    delete nat source rule 1000
+    delete firewall ipv4 input filter rule 1000
+    delete firewall ipv4 input filter rule 1001
+    delete firewall ipv4 forward filter rule 1000
+  (use 'delete service dhcp-server shared-network-name trusted' instead if
+  other DHCPv4 scopes exist by then)
+
+- Create the untrusted VLAN (60) in the gateway role: internet only, no
+  inter-VLAN access; intra-VLAN isolation via Proxmox per-VM firewall (and
+  switch port isolation once lagrange exists)
+- Deploy atlas (step-ca) and distribute its root certificate to every managed
+  device
+
+- NTP redirect rule: force IoT devices with hardcoded public NTP (pool.ntp.org)
+  to use vanguard instead (outbound UDP 123 redirect)
+- Tighten firewall forward rule 310 (services -> iot) to gaia's address once
+  gaia exists
+- mDNS repeater between services and iot if a device needs auto-discovery
+- Remove default-log from the input chain once the network is stable (keep it
+  on forward)
+- Configure eth1 (5G backup WAN) and WAN failover
+- Managed switch: VLAN enforcement + untagged wired devices (currently wired
+  devices must tag their own traffic)
+- Once polaris is built: do DNS64 locally (AdGuard), point RDNSS at polaris,
+  and restore Cloudflare + Google as plain upstreams
+- Ship vanguard logs to hubble via remote syslog (Grafana + Loki + Alloy) and
+  add the management -> services syslog firewall rule
+- Consider restricting the forward ICMPv6 rule to specific types (currently
+  allows ping between all VLANs)

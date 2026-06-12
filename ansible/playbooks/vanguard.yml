@@ -1,0 +1,6 @@
+---
+- name: Configure vanguard (VyOS gateway / firewall)
+  hosts: vanguard
+  gather_facts: false
+  roles:
+    - gateway

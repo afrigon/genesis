@@ -1,0 +1,42 @@
+---
+- name: Gather running configuration
+  vyos.vyos.vyos_command:
+    commands:
+      - show configuration commands
+  register: gateway_running_config
+
+- name: Harden SSH (key-only authentication)
+  vyos.vyos.vyos_config:
+    lines:
+      - set service ssh disable-password-authentication
+    save: true
+
+- name: Remove default vyos user
+  vyos.vyos.vyos_config:
+    lines:
+      - delete system login user vyos
+    save: true
+  when: gateway_running_config.stdout[0] is search('set system login user vyos ')
+
+- name: Apply configuration templates
+  vyos.vyos.vyos_config:
+    lines: "{{ lookup('template', item ~ '.j2').splitlines() | map('trim') | reject('equalto', '') | list }}"
+    save: true
+  loop:
+    - system
+    - interfaces
+    - router-advert
+    - nat64
+    - firewall
+    - ipv4-trusted
+
+- name: Remove default VyOS NTP servers
+  vyos.vyos.vyos_config:
+    lines:
+      - delete service ntp server {{ item }}
+    save: true
+  loop:
+    - time1.vyos.net
+    - time2.vyos.net
+    - time3.vyos.net
+  when: gateway_running_config.stdout[0] is search('set service ntp server ' ~ item)

@@ -1,0 +1,45 @@
+---
+host_description: VyOS gateway / firewall
+
+# Physical ports
+wan_interface: eth0          # WAN (modem)
+wan_backup_interface: eth1   # WAN backup (5G) — not configured yet
+lan_interface: eth2          # LAN trunk to the L2 switch
+config_interface: eth3       # Direct connection for recovery/config
+
+vlans:
+  management: 10
+  trusted: 20
+  services: 30
+  iot: 40
+  guest: 50
+
+# Prefix length requested from the ISP via DHCPv6-PD
+pd_length: 56
+
+# Vanguard's own resolvers (Cloudflare + Google). Not DNS64: Jool does not
+# translate locally-originated traffic, and vanguard reaches IPv4 natively
+# through the WAN anyway.
+name_servers:
+  - 2606:4700:4700::1111
+  - 2001:4860:4860::8888
+
+# Resolvers advertised to clients via RA. Google public DNS64 until polaris
+# provides DNS64 locally: synthesizes AAAA records pointing into 64:ff9b::/96,
+# which routes to vanguard's NAT64. All client resolvers must be
+# DNS64-capable: asking a non-DNS64 resolver about an IPv4-only site breaks it.
+ra_name_servers:
+  - 2001:4860:4860::6464
+  - 2001:4860:4860::64
+
+# TEMPORARY IPv4 exception: the trusted VLAN is dual-stacked because Windows
+# has no stable CLAT yet, so IPv4-only applications (games) need native IPv4.
+# Remove once Windows CLAT ships in stable: delete this block, remove
+# ipv4-trusted from the template loop in roles/gateway/tasks/main.yml, delete
+# roles/gateway/templates/ipv4-trusted.j2, and run the manual deletes for the
+# config paths the template owns.
+trusted_ipv4:
+  subnet: 10.0.20.0/24
+  gateway: 10.0.20.1
+  dhcp_range_start: 10.0.20.100
+  dhcp_range_stop: 10.0.20.199

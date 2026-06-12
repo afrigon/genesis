@@ -1,0 +1,135 @@
+set firewall global-options state-policy established action 'accept'
+set firewall global-options state-policy related action 'accept'
+set firewall global-options state-policy invalid action 'drop'
+
+set firewall ipv6 forward filter default-action 'drop'
+set firewall ipv6 forward filter default-log
+
+set firewall ipv6 forward filter rule 10 description 'ICMPv6 is required for IPv6 to function'
+set firewall ipv6 forward filter rule 10 action 'accept'
+set firewall ipv6 forward filter rule 10 protocol 'ipv6-icmp'
+
+set firewall ipv6 forward filter rule 20 description 'LAN to NAT64'
+set firewall ipv6 forward filter rule 20 action 'accept'
+set firewall ipv6 forward filter rule 20 inbound-interface name '{{ lan_interface }}*'
+set firewall ipv6 forward filter rule 20 destination address '64:ff9b::/96'
+
+set firewall ipv6 forward filter rule 30 description 'drop late QUIC packets from WAN without logging'
+set firewall ipv6 forward filter rule 30 action 'drop'
+set firewall ipv6 forward filter rule 30 inbound-interface name '{{ wan_interface }}'
+set firewall ipv6 forward filter rule 30 protocol 'udp'
+set firewall ipv6 forward filter rule 30 source port '443'
+
+set firewall ipv6 forward filter rule 100 description 'management reaches everything'
+set firewall ipv6 forward filter rule 100 action 'accept'
+set firewall ipv6 forward filter rule 100 inbound-interface name '{{ lan_interface }}.{{ vlans.management }}'
+
+set firewall ipv6 forward filter rule 110 description 'config port reaches everything'
+set firewall ipv6 forward filter rule 110 action 'accept'
+set firewall ipv6 forward filter rule 110 inbound-interface name '{{ config_interface }}'
+
+set firewall ipv6 forward filter rule 200 description 'trusted to internet'
+set firewall ipv6 forward filter rule 200 action 'accept'
+set firewall ipv6 forward filter rule 200 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
+set firewall ipv6 forward filter rule 200 outbound-interface name '{{ wan_interface }}'
+
+set firewall ipv6 forward filter rule 210 description 'trusted to services through the reverse proxy only'
+set firewall ipv6 forward filter rule 210 action 'accept'
+set firewall ipv6 forward filter rule 210 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
+set firewall ipv6 forward filter rule 210 outbound-interface name '{{ lan_interface }}.{{ vlans.services }}'
+set firewall ipv6 forward filter rule 210 protocol 'tcp'
+set firewall ipv6 forward filter rule 210 destination port '443'
+
+set firewall ipv6 forward filter rule 220 description 'trusted to iot devices'
+set firewall ipv6 forward filter rule 220 action 'accept'
+set firewall ipv6 forward filter rule 220 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
+set firewall ipv6 forward filter rule 220 outbound-interface name '{{ lan_interface }}.{{ vlans.iot }}'
+
+set firewall ipv6 forward filter rule 230 description 'ssh from trusted to management'
+set firewall ipv6 forward filter rule 230 action 'accept'
+set firewall ipv6 forward filter rule 230 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
+set firewall ipv6 forward filter rule 230 outbound-interface name '{{ lan_interface }}.{{ vlans.management }}'
+set firewall ipv6 forward filter rule 230 protocol 'tcp'
+set firewall ipv6 forward filter rule 230 destination port '22'
+
+set firewall ipv6 forward filter rule 240 description 'ssh from trusted to services'
+set firewall ipv6 forward filter rule 240 action 'accept'
+set firewall ipv6 forward filter rule 240 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
+set firewall ipv6 forward filter rule 240 outbound-interface name '{{ lan_interface }}.{{ vlans.services }}'
+set firewall ipv6 forward filter rule 240 protocol 'tcp'
+set firewall ipv6 forward filter rule 240 destination port '22'
+
+set firewall ipv6 forward filter rule 300 description 'services to internet'
+set firewall ipv6 forward filter rule 300 action 'accept'
+set firewall ipv6 forward filter rule 300 inbound-interface name '{{ lan_interface }}.{{ vlans.services }}'
+set firewall ipv6 forward filter rule 300 outbound-interface name '{{ wan_interface }}'
+
+set firewall ipv6 forward filter rule 310 description 'services to iot devices (home assistant, zigbee)'
+set firewall ipv6 forward filter rule 310 action 'accept'
+set firewall ipv6 forward filter rule 310 inbound-interface name '{{ lan_interface }}.{{ vlans.services }}'
+set firewall ipv6 forward filter rule 310 outbound-interface name '{{ lan_interface }}.{{ vlans.iot }}'
+
+set firewall ipv6 forward filter rule 400 description 'iot to internet'
+set firewall ipv6 forward filter rule 400 action 'accept'
+set firewall ipv6 forward filter rule 400 inbound-interface name '{{ lan_interface }}.{{ vlans.iot }}'
+set firewall ipv6 forward filter rule 400 outbound-interface name '{{ wan_interface }}'
+
+set firewall ipv6 forward filter rule 500 description 'guest to internet'
+set firewall ipv6 forward filter rule 500 action 'accept'
+set firewall ipv6 forward filter rule 500 inbound-interface name '{{ lan_interface }}.{{ vlans.guest }}'
+set firewall ipv6 forward filter rule 500 outbound-interface name '{{ wan_interface }}'
+
+set firewall ipv6 input filter default-action 'drop'
+set firewall ipv6 input filter default-log
+
+set firewall ipv6 input filter rule 5 description 'untagged LAN traffic is intentionally dead'
+set firewall ipv6 input filter rule 5 action 'drop'
+set firewall ipv6 input filter rule 5 log
+set firewall ipv6 input filter rule 5 inbound-interface name '{{ lan_interface }}'
+
+set firewall ipv6 input filter rule 10 description 'ICMPv6 (neighbor discovery, RA from ISP)'
+set firewall ipv6 input filter rule 10 action 'accept'
+set firewall ipv6 input filter rule 10 protocol 'ipv6-icmp'
+
+set firewall ipv6 input filter rule 20 description 'SSH from management'
+set firewall ipv6 input filter rule 20 action 'accept'
+set firewall ipv6 input filter rule 20 inbound-interface name '{{ lan_interface }}.{{ vlans.management }}'
+set firewall ipv6 input filter rule 20 protocol 'tcp'
+set firewall ipv6 input filter rule 20 destination port '22'
+
+set firewall ipv6 input filter rule 21 description 'SSH from config port'
+set firewall ipv6 input filter rule 21 action 'accept'
+set firewall ipv6 input filter rule 21 inbound-interface name '{{ config_interface }}'
+set firewall ipv6 input filter rule 21 protocol 'tcp'
+set firewall ipv6 input filter rule 21 destination port '22'
+
+set firewall ipv6 input filter rule 22 description 'SSH from trusted'
+set firewall ipv6 input filter rule 22 action 'accept'
+set firewall ipv6 input filter rule 22 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
+set firewall ipv6 input filter rule 22 protocol 'tcp'
+set firewall ipv6 input filter rule 22 destination port '22'
+
+set firewall ipv6 input filter rule 30 description 'DHCPv6 client traffic on WAN'
+set firewall ipv6 input filter rule 30 action 'accept'
+set firewall ipv6 input filter rule 30 inbound-interface name '{{ wan_interface }}'
+set firewall ipv6 input filter rule 30 protocol 'udp'
+set firewall ipv6 input filter rule 30 source port '547'
+set firewall ipv6 input filter rule 30 destination port '546'
+
+set firewall ipv6 input filter rule 40 description 'NTP from LAN'
+set firewall ipv6 input filter rule 40 action 'accept'
+set firewall ipv6 input filter rule 40 inbound-interface name '{{ lan_interface }}*'
+set firewall ipv6 input filter rule 40 protocol 'udp'
+set firewall ipv6 input filter rule 40 destination port '123'
+
+set firewall ipv4 input filter default-action 'drop'
+
+set firewall ipv4 input filter rule 20 description 'DHCP client traffic on WAN'
+set firewall ipv4 input filter rule 20 action 'accept'
+set firewall ipv4 input filter rule 20 inbound-interface name '{{ wan_interface }}'
+set firewall ipv4 input filter rule 20 protocol 'udp'
+set firewall ipv4 input filter rule 20 source port '67'
+set firewall ipv4 input filter rule 20 destination port '68'
+
+set firewall ipv4 forward filter default-action 'drop'
+set firewall ipv4 forward filter default-log

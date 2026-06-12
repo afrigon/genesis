@@ -1,0 +1,17 @@
+set system host-name '{{ inventory_hostname }}'
+set system time-zone '{{ timezone }}'
+set system option reboot-on-panic
+
+{% for ns in name_servers %}
+set system name-server '{{ ns }}'
+{% endfor %}
+
+{% for ntp in ntp_servers %}
+set service ntp server {{ ntp }}
+{% endfor %}
+
+{% for name, id in vlans.items() %}
+set service ntp allow-client address '{{ ula_prefix }}:{{ id }}::/64'
+{% endfor %}
+
+set system login banner post-login '{{ login_banner | trim | replace("\n", "\\n") }}'

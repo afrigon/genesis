@@ -1,0 +1,160 @@
+# Genesis — Homelab Infrastructure as Code
+
+Genesis configures the entire homelab with Terraform and Ansible. The guiding
+principle is **full recoverability**: if the hardware died tomorrow, the whole
+environment (minus application data) must be rebuildable from this repo with a
+few commands, starting from `bootstrap.md` (the minimal manual steps needed
+before automation can take over).
+
+## Core principles
+
+- **IPv6 only.** The network is IPv6-only end to end. IPv4 is added only where
+  a specific device or service makes it unavoidable, and each exception must be
+  documented.
+- **Everything by name.** Hosts and services are referenced by DNS name
+  (self-hosted DNS), never by hard-coded address, wherever possible.
+- **Secure by default.** Every service must have proper authentication and a
+  valid SSL/TLS certificate — no plain HTTP, no unauthenticated services.
+- **Reverse proxy only.** Services must not be directly reachable; all access
+  goes through the reverse proxy (harmony), which enforces auth, SSL, and
+  access policy. Firewall rules should block direct access to service ports.
+- **Declarative over imperative.** All configuration lives in this repo.
+  Manual changes on devices are considered drift and should be folded back
+  into code.
+
+## Hardware
+
+| Host     | Role                                   | Notes |
+|----------|----------------------------------------|-------|
+| vanguard | VyOS gateway / firewall                | 4× ethernet: eth0=WAN (modem), eth1=WAN backup (5G), eth2=LAN (to L2 switch), eth3=configuration (direct connection for recovery/config) |
+| sol      | Proxmox VE server                      | Hosts the reverse proxy and all VM/LXC services |
+| AP       | UniFi Express (temporary)              | On the L2 switch. SSIDs: `x` (trusted), `x-iot` (hidden), `x-guest`. Will be replaced by a dedicated AP later |
+| switch   | Dumb L2 switch (temporary)             | Will be upgraded to a managed (likely UniFi) switch for proper VLAN handling |
+
+## Network
+
+ULA prefix for internal communication: `fd22:1337:6769:{vlan}::/64`
+
+The gateway (vanguard) is always at `{prefix}::1` on every VLAN.
+
+### VLANs
+
+| VLAN | Name       | Prefix                    | Purpose / Wi-Fi |
+|------|------------|---------------------------|-----------------|
+| 10   | management | `fd22:1337:6769:10::/64`  | Infrastructure management (vanguard, sol) |
+| 20   | trusted    | `fd22:1337:6769:20::/64`  | Trusted clients — Wi-Fi `x` |
+| 30   | services   | `fd22:1337:6769:30::/64`  | Self-hosted services (VMs/containers on sol) |
+| 40   | iot        | `fd22:1337:6769:40::/64`  | IoT devices — Wi-Fi `x-iot` (hidden) |
+| 50   | guest      | `fd22:1337:6769:50::/64`  | Guests — Wi-Fi `x-guest` |
+
+More VLANs will be added for untrusted services as needed.
+
+### Addressing
+
+- **Clients:** SLAAC only — no DHCPv6 or DHCPv4 on the LAN.
+- **Infrastructure:** static, predictable addresses (gateway at `{prefix}::1`,
+  low interface IDs for servers).
+- **WAN:** DHCPv6 (with prefix delegation from the ISP).
+- **Dual prefixes:** hosts get a ULA address (internal communication, DNS,
+  static config) plus a GUA via SLAAC from the ISP-delegated prefix (outbound
+  internet). Never hard-code GUAs — the delegated prefix can change.
+- **IPv4 reachability:** NAT64 on vanguard translates `64:ff9b::/96`; DNS64
+  resolvers (Google's, until polaris does DNS64 locally) synthesize AAAA
+  records into that prefix. The WAN's DHCPv4 address is the network's only
+  IPv4 presence.
+- **Temporary exception — trusted VLAN is dual-stack:** Windows has no stable
+  CLAT yet, so IPv4-only applications (games) need native IPv4. VLAN 20 gets
+  DHCPv4 (`10.0.20.0/24`) + NAT44, fully isolated in
+  `roles/gateway/templates/ipv4-trusted.j2` and the `trusted_ipv4` var.
+  Remove when Windows CLAT reaches stable (PREF64 is already advertised, so
+  clients switch over automatically).
+- **Untagged LAN traffic is intentionally dead:** bare eth2 has no prefix and
+  the firewall logs and drops anything arriving on it. Do not "fix" this —
+  every device must be on a tagged VLAN.
+
+### Wi-Fi
+
+| SSID      | VLAN         | Security |
+|-----------|--------------|----------|
+| `x`       | trusted (20) | WPA3 only |
+| `x-iot`   | iot (40)     | Hidden; settings optimized for IoT compatibility (e.g. WPA2, 2.4 GHz) |
+| `x-guest` | guest (50)   | Client isolation |
+
+## Naming convention
+
+Everything is space themed and referenced by name via self-hosted DNS
+(polaris), following the convention `{service}.x` (e.g. `gaia.x`,
+`andromeda.x`).
+
+TLS for `.x` names is issued by an internal CA (atlas, step-ca). Its root
+certificate is distributed to managed hosts by Ansible and trusted manually
+(once) on personal devices.
+
+The full service and device catalog — software choices, VLAN placement, and
+name rationale — lives in `services.md`. New services are added there first.
+
+## Tooling
+
+- **Terraform** — provisions resources on Proxmox (VMs, LXC containers).
+- **Ansible** — configures vanguard (VyOS) and all guests, authenticating
+  with SSH keys — no secrets stored in the repo. If something ever genuinely
+  needs a stored secret, the tooling decision will be made at that point.
+- **bootstrap.md** — the manual steps required on a fresh device (network +
+  SSH access) before Terraform/Ansible can manage it. Keep it minimal and up
+  to date: it is the disaster-recovery entry point.
+
+The repo layout follows Terraform/Ansible best practices and may be
+restructured as the project grows.
+
+## Conventions for changes
+
+- Use IPv6 addresses from the ULA plan above; never invent addresses outside it.
+- New hosts/services get a space-themed name, a DNS record, and an inventory
+  entry.
+- Any IPv4 usage must be justified in a comment or doc next to where it is
+  introduced.
+- Follow the addressing rules above: static addresses for infrastructure,
+  SLAAC only for clients.
+- **Removing config:** Ansible only merges `set` lines — it never deletes.
+  When config is removed from the gateway templates, give the user the manual
+  `delete` commands to run on the device; never bake one-off cleanup tasks
+  into the playbook. Exception: VyOS factory defaults (e.g. the default NTP
+  servers) are removed in code, because they come back on every fresh install
+  and recovery must not depend on remembering manual steps.
+- **Consider the security impact of every change.** Before applying a change,
+  reason through: which trust boundaries it touches (WAN, guest/iot,
+  untrusted, management), what new attack surface it adds (listening
+  services, allowed flows, new protocols), and whether enforcement actually
+  applies. Surface any weakening of isolation to the user explicitly — never
+  bury it in a diff.
+- **Keep this file current.** When a new decision is made, or you discover
+  something that would help the next agent (a gotcha, a convention, a better
+  approach), ask the user whether CLAUDE.md should be updated to reflect it.
+
+## Debugging firewall issues
+
+The firewall logs every dropped packet (`default-log` on the `forward` and
+`input` chains). Workflow, on vanguard, when something can't connect:
+
+1. **Watch drops live:** `monitor log` (or `show log firewall`) while
+   reproducing the connection. A drop line shows chain, interfaces, and
+   source/dest — it usually identifies the misconfigured rule immediately.
+2. **Check rule hit counters:** `show firewall ipv6 forward filter` shows
+   per-rule packet counts. Reproduce, re-run, and see which counter moves.
+   If the expected rule isn't matching, the traffic is arriving on a
+   different interface or address family than assumed.
+3. **Confirm packets arrive:** `monitor traffic interface eth2.30 filter
+   'tcp port 443'` (tcpdump wrapper) on the destination VLAN. Packets in but
+   no replies → problem is on the destination host (its own firewall, or the
+   service not listening on IPv6). No packets → routing/firewall upstream.
+4. **Layer 3 sanity:** `show ipv6 route`, `show ipv6 neighbors`; from the
+   client, ping the gateway ULA first, then the destination.
+
+IPv6-specific gotchas:
+
+- Clients use SLAAC **privacy addresses** (random GUAs) as source — rules
+  matching on a specific source address may never see them. Prefer matching
+  on inbound interface for client traffic.
+- If DNS resolves a service name to its GUA but the service only listens on
+  its ULA (or vice versa), the connection fails with **no firewall drops at
+  all** — check which address the client actually dialed.

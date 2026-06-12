@@ -1,0 +1,11 @@
+---
+all:
+  children:
+    network:
+      hosts:
+        vanguard:
+          ansible_host: fd22:1337:6769:10::1
+    services:
+      hosts:
+        sol:
+          ansible_host: fd22:1337:6769:10::2

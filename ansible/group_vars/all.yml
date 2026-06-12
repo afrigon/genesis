@@ -1,0 +1,22 @@
+---
+# Everything lives in the same physical location
+timezone: America/Toronto
+
+# ULA addressing: fd22:1337:6769:{vlan}::/64, gateway always ::1
+ula_prefix: "fd22:1337:6769"
+
+ntp_servers:
+  - time.cloudflare.com
+  - time.google.com
+
+# Standard login banner for every ssh-enabled host
+login_banner: |2
+     ____ _____ _   _ _____ ____ ___ ____             *
+    / ___| ____| \ | | ____/ ___|_ _/ ___|      .
+   | |  _|  _| |  \| |  _| \___ \| |\___ \   *
+   | |_| | |___| |\  | |___ ___) | | ___) |        .
+    \____|_____|_| \_|_____|____/___|____/  .
+
+   host : {{ inventory_hostname }} ({{ host_description }})
+   --------------------------------------------------------
+   Managed by genesis (Ansible). Manual changes will be lost.
