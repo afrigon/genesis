@@ -1,0 +1,48 @@
+---
+- name: Enable Proxmox no-subscription repository
+  ansible.builtin.template:
+    src: pve-no-subscription.sources.j2
+    dest: /etc/apt/sources.list.d/pve-no-subscription.sources
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Check for enterprise repositories
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - /etc/apt/sources.list.d/pve-enterprise.sources
+    - /etc/apt/sources.list.d/ceph.sources
+  register: enterprise_repos
+
+- name: Disable enterprise repositories
+  ansible.builtin.lineinfile:
+    path: "{{ item.item }}"
+    regexp: '^Enabled:'
+    line: "Enabled: no"
+    insertafter: '^Types:'
+  loop: "{{ enterprise_repos.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: item.stat.exists
+
+- name: Upgrade all packages
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: dist
+    autoremove: true
+
+- name: Configure NTP
+  ansible.builtin.template:
+    src: chrony.conf.j2
+    dest: /etc/chrony/chrony.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart chrony
+
+- name: Enable and start NTP
+  ansible.builtin.service:
+    name: chrony
+    enabled: true
+    state: started

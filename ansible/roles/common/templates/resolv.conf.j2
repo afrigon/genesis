@@ -1,0 +1,4 @@
+# Managed by genesis (Ansible).
+{% for ns in dns_resolvers %}
+nameserver {{ ns }}
+{% endfor %}

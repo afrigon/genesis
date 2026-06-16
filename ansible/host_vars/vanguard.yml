@@ -24,14 +24,6 @@ name_servers:
   - 2606:4700:4700::1111
   - 2001:4860:4860::8888
 
-# Resolvers advertised to clients via RA. Google public DNS64 until polaris
-# provides DNS64 locally: synthesizes AAAA records pointing into 64:ff9b::/96,
-# which routes to vanguard's NAT64. All client resolvers must be
-# DNS64-capable: asking a non-DNS64 resolver about an IPv4-only site breaks it.
-ra_name_servers:
-  - 2001:4860:4860::6464
-  - 2001:4860:4860::64
-
 # TEMPORARY IPv4 exception: the trusted VLAN is dual-stacked because Windows
 # has no stable CLAT yet, so IPv4-only applications (games) need native IPv4.
 # Remove once Windows CLAT ships in stable: delete this block, remove

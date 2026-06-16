@@ -12,6 +12,12 @@ ansible/collections/
 *.tfstate
 *.tfstate.*
 
+# Terraform variable files (may hold provider credentials)
+*.tfvars
+*.tfvars.json
+*.auto.tfvars
+*.auto.tfvars.json
+
 # Crash log files
 crash.log
 crash.*.log

@@ -1,0 +1,8 @@
+---
+- name: Configure sol (Proxmox VE host)
+  hosts: sol
+  become: true
+  gather_facts: true
+  roles:
+    - common
+    - proxmox

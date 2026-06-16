@@ -1,7 +1,7 @@
 {% for name, id in vlans.items() %}
 set service router-advert interface {{ lan_interface }}.{{ id }} prefix ::/64
 set service router-advert interface {{ lan_interface }}.{{ id }} nat64prefix '64:ff9b::/96'
-{% for ns in ra_name_servers %}
+{% for ns in dns_resolvers %}
 set service router-advert interface {{ lan_interface }}.{{ id }} name-server '{{ ns }}'
 {% endfor %}
 {% endfor %}
