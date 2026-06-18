@@ -1,6 +1,6 @@
 # Manual Bootstrap
 
-## Debian
+## Proxmox
 
 ### Configure Network
 
@@ -37,7 +37,6 @@ ifreload -a
 
 ```sh
 adduser {user}
-usermod -aG sudo {user}  # optional: add the user to the sudo group
 ```
 
 ### Configure Temporary DNS
@@ -50,6 +49,16 @@ echo "nameserver 2001:4860:4860::6464" > /etc/resolv.conf
 
 ```sh
 apt install sudo
+echo "{user} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/{user}
+chmod 440 /etc/sudoers.d/{user}
+```
+
+### Create terraform API Key
+
+this is an api key used by terraform and needs to be configured through the PROXMOX_VE_API_TOKEN environment variable.
+
+```sh
+pveum user token add root@pam terraform --privsep 0
 ```
 
 ### Configure SSH keys from the client

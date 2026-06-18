@@ -1,4 +1,13 @@
 ---
+# Proxmox needs its hostname to resolve to the node's address; a stale
+# install-time IPv4 here breaks pveproxy. Swap the address, keep the FQDN.
+- name: Point the node's /etc/hosts entry at its management IPv6
+  ansible.builtin.replace:
+    path: /etc/hosts
+    regexp: '^\S+(\s+\S*\b{{ inventory_hostname }}\b.*)$'
+    replace: '{{ ansible_host }}\1'
+  notify: Restart pveproxy
+
 - name: Enable Proxmox no-subscription repository
   ansible.builtin.template:
     src: pve-no-subscription.sources.j2
@@ -46,3 +55,10 @@
     name: chrony
     enabled: true
     state: started
+
+# Terraform needs these on local storage: import for the cloud image, snippets
+# for the cloud-init network/user config.
+- name: Allow image import and cloud-init snippets on local storage
+  ansible.builtin.command:
+    cmd: pvesm set local --content vztmpl,iso,backup,snippets,import
+  changed_when: false

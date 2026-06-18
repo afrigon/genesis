@@ -65,7 +65,8 @@ reach it, it can only reach the internet.
 | Name    | What            | VLAN    |
 |---------|-----------------|---------|
 | nova    | 3D printer      | iot     |
-| mercury | Paper printer   | iot     |
+| aurora  | Ink printer     | iot     |
+| pioneer | Label printer   | iot     |
 | —       | Apple TV        | trusted |
 | —       | Chromecast      | trusted |
 
@@ -93,5 +94,6 @@ reach it, it can only reach the internet.
 - **quasar** — the brightest radio source in the sky; the AP
 - **lagrange** — the point where things meet and hold position; the switch
 - **nova** — creates new matter; 3D printer
-- **mercury** — the messenger delivers documents; paper printer
+- **aurora** — paints color across the sky; the ink printer
+- **pioneer** — the Pioneer plaque, a tag bolted on to identify; the label printer
 - **titan** — the heavyweight moon; workstation

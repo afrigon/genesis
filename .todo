@@ -22,6 +22,10 @@
   to use vanguard instead (outbound UDP 123 redirect)
 - Tighten firewall forward rule 310 (services -> iot) to gaia's address once
   gaia exists
+- Lock down pioneer (label printer) to only the protocols it actually needs:
+  restrict trusted -> pioneer to its print ports (e.g. IPP 631, raw 9100) and
+  drop everything else, once the device is on the network and its real port
+  usage is confirmed
 - mDNS repeater between services and iot if a device needs auto-discovery
 - Remove default-log from the input chain once the network is stable (keep it
   on forward)
@@ -34,3 +38,7 @@
   add the management -> services syslog firewall rule
 - Consider restricting the forward ICMPv6 rule to specific types (currently
   allows ping between all VLANs)
+- Replace the Proxmox API self-signed cert with an atlas-issued one and drop
+  `insecure = true` from terraform/providers.tf once atlas exists
+- Scope the Terraform Proxmox token to a dedicated terraform@pve user with a
+  minimal custom role (privsep 1 + ACLs) instead of the root@pam privsep-0 token

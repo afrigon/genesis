@@ -1,5 +1,8 @@
 .DS_Store
 
+# Local environment / secrets (never committed)
+.env
+
 # Ansible
 *.retry
 .ansible/
