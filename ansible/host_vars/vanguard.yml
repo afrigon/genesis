@@ -14,6 +14,13 @@ vlans:
   iot: 40
   guest: 50
 
+# Infrastructure VLANs: ULA advertised with no-autonomous-flag so statically
+# addressed hosts don't also pick up a duplicate SLAAC ULA. (GUA still
+# autoconfigures via the ::/64 wildcard.)
+static_vlans:
+  - management
+  - services
+
 # Prefix length requested from the ISP via DHCPv6-PD
 pd_length: 56
 

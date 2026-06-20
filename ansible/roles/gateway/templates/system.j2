@@ -14,4 +14,4 @@ set service ntp server {{ ntp }}
 set service ntp allow-client address '{{ ula_prefix }}:{{ id }}::/64'
 {% endfor %}
 
-set system login banner post-login '{{ login_banner | trim | replace("\n", "\\n") }}'
+set system login banner post-login '\n{{ login_banner | trim("\n") | replace("\n", "\\n") }}'

@@ -52,6 +52,13 @@ set firewall ipv6 forward filter rule 230 outbound-interface name '{{ lan_interf
 set firewall ipv6 forward filter rule 230 protocol 'tcp'
 set firewall ipv6 forward filter rule 230 destination port '22'
 
+set firewall ipv6 forward filter rule 235 description 'proxmox API from trusted to management'
+set firewall ipv6 forward filter rule 235 action 'accept'
+set firewall ipv6 forward filter rule 235 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
+set firewall ipv6 forward filter rule 235 outbound-interface name '{{ lan_interface }}.{{ vlans.management }}'
+set firewall ipv6 forward filter rule 235 protocol 'tcp'
+set firewall ipv6 forward filter rule 235 destination port '8006'
+
 set firewall ipv6 forward filter rule 240 description 'ssh from trusted to services'
 set firewall ipv6 forward filter rule 240 action 'accept'
 set firewall ipv6 forward filter rule 240 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'

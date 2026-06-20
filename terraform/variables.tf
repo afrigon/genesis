@@ -8,6 +8,11 @@ variable "proxmox_node" {
   default = "sol"
 }
 
+variable "proxmox_node_address" {
+  type    = string
+  default = "fd22:1337:6769:10::2"
+}
+
 variable "vm_datastore" {
   type    = string
   default = "local-lvm"
@@ -28,15 +33,13 @@ variable "cloud_image_url" {
   default = "https://cloud.debian.org/images/cloud/trixie/latest/debian-13-generic-amd64.qcow2"
 }
 
-# Supplied at apply time (TF_VAR_vm_username from `whoami`); no default so the
-# VM user always matches whoever runs Terraform.
-variable "vm_username" {
+variable "username" {
   type = string
 }
 
 variable "ssh_public_key" {
   type        = string
-  description = "SSH public key authorized on every VM; paste when prompted."
+  description = "SSH public key authorized on every VM"
 }
 
 variable "vms" {

@@ -5,5 +5,13 @@ provider "proxmox" {
   # atlas can issue one for sol.
   insecure = true
 
-  # Token supplied via the PROXMOX_VE_API_TOKEN environment variable.
+  # Snippet uploads go over SSH; no DNS for the node yet, so set its IP.
+  ssh {
+    agent = true
+
+    node {
+      name    = var.proxmox_node
+      address = var.proxmox_node_address
+    }
+  }
 }

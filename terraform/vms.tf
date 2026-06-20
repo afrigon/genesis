@@ -13,6 +13,6 @@ module "vm" {
   snippet_datastore = var.image_datastore
   bridge            = var.network_bridge
   image_file_id     = proxmox_download_file.debian.id
-  username          = var.vm_username
+  username          = var.username
   ssh_public_key    = var.ssh_public_key
 }
