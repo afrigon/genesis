@@ -1,24 +1,42 @@
 export ANSIBLE_CONFIG := $(CURDIR)/ansible/ansible.cfg
 
-.PHONY: install vanguard vanguard-check sol sol-check sol-provision sol-provision-check
+# Optional scoping: make apply LIMIT=core TAGS=harmony
+LIMIT ?=
+TAGS  ?=
+_scope = $(if $(LIMIT),--limit $(LIMIT)) $(if $(TAGS),--tags $(TAGS))
+
+.DEFAULT_GOAL := help
+.PHONY: help install check apply provision provision-check
+
+help:
+	@echo "Usage: make <target> [LIMIT=...] [TAGS=...]"
+	@echo
+	@echo "Targets:"
+	@echo "  check            dry-run site.yml (--check --diff)"
+	@echo "  apply            apply site.yml"
+	@echo "  provision        terraform apply (provision VMs on sol)"
+	@echo "  provision-check  terraform plan"
+	@echo "  install          install Ansible collections"
+	@echo
+	@echo "Hosts and groups (LIMIT):"
+	@cd ansible && ansible-inventory --graph
+	@echo
+	@echo "Services (TAGS):"
+	@cd ansible && ansible-playbook playbooks/site.yml --list-tags 2>/dev/null \
+	  | grep -oE 'TASK TAGS: \[.*\]' | sed -E 's/TASK TAGS: \[(.*)\]/\1/; s/, /\n/g' \
+	  | sort -u | sed 's/^/  /'
 
 install:
 	cd ansible && ansible-galaxy collection install -r requirements.yml
 
-vanguard-check:
-	cd ansible && ansible-playbook playbooks/vanguard.yml --check --diff
+check:
+	cd ansible && ansible-playbook playbooks/site.yml --check --diff $(_scope)
 
-vanguard:
-	cd ansible && ansible-playbook playbooks/vanguard.yml
+apply:
+	cd ansible && ansible-playbook playbooks/site.yml $(_scope)
 
-sol-check:
-	cd ansible && ansible-playbook playbooks/sol.yml --check --diff
-
-sol:
-	cd ansible && ansible-playbook playbooks/sol.yml
-
-sol-provision-check:
+provision-check:
 	cd terraform && terraform init && terraform plan
 
-sol-provision:
+provision:
 	cd terraform && terraform init && terraform apply

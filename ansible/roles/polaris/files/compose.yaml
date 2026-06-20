@@ -1,0 +1,11 @@
+services:
+  polaris:
+    image: adguard/adguardhome:v0.107.77
+    container_name: polaris
+    restart: unless-stopped
+    # Host networking so AdGuard sees real client source IPs (per-client
+    # logging/filtering) and binds DNS directly on the VM's addresses.
+    network_mode: host
+    volumes:
+      - ./work:/opt/adguardhome/work
+      - ./conf:/opt/adguardhome/conf

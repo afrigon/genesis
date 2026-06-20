@@ -22,6 +22,9 @@
   to use vanguard instead (outbound UDP 123 redirect)
 - Tighten firewall forward rule 310 (services -> iot) to gaia's address once
   gaia exists
+- Once polaris serves encrypted DNS, switch firewall forward rule 215
+  (trusted -> polaris) from plaintext 53 to the TLS port (853 DoT / 443 DoH)
+  and drop plaintext
 - Lock down pioneer (label printer) to only the protocols it actually needs:
   restrict trusted -> pioneer to its print ports (e.g. IPP 631, raw 9100) and
   drop everything else, once the device is on the network and its real port

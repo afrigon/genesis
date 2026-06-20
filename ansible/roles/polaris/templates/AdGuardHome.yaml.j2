@@ -1,0 +1,25 @@
+schema_version: 34
+http:
+  address: '[::]:3000'
+users: []
+dns:
+  bind_hosts:
+    - '::'
+  port: 53
+  upstream_dns:
+    - https://dns.cloudflare.com/dns-query
+    - https://dns.google/dns-query
+  bootstrap_dns:
+    - 2606:4700:4700::1111
+    - 2001:4860:4860::8888
+  upstream_mode: load_balance
+  use_dns64: true
+  dns64_prefixes:
+    - '64:ff9b::/96'
+filtering:
+  rewrites:
+{% for r in dns_records %}
+    - domain: {{ r.name }}
+      answer: '{{ r.address }}'
+      enabled: true
+{% endfor %}

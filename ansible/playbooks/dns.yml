@@ -1,0 +1,9 @@
+---
+- name: Configure dns VM
+  hosts: dns
+  become: true
+  gather_facts: true
+  roles:
+    - common
+    - docker
+    - { role: polaris, tags: polaris }

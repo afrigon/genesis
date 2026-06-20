@@ -21,6 +21,12 @@ static_vlans:
   - management
   - services
 
+# VLANs whose clients are advertised polaris as resolver
+polaris_vlans:
+  - trusted
+  - management
+  - services
+
 # Prefix length requested from the ISP via DHCPv6-PD
 pd_length: 56
 

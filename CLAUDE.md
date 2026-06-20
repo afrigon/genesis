@@ -96,9 +96,17 @@ name rationale — lives in `services.md`. New services are added there first.
 ## Tooling
 
 - **Terraform** — provisions resources on Proxmox (VMs, LXC containers).
-- **Ansible** — configures vanguard (VyOS) and all guests, authenticating
-  with SSH keys — no secrets stored in the repo. If something ever genuinely
-  needs a stored secret, the tooling decision will be made at that point.
+- **Ansible** — configures vanguard (VyOS) and all guests over SSH. Every
+  managed host has the same login user as the local workstation, pre-seeded
+  with the operator's SSH key; the SSH client authenticates through the
+  1Password agent socket, so the private key never leaves 1Password.
+- **Secrets — 1Password.** No secret values live in the repo. `.env.op` holds
+  `op://` reference URLs (not values); everything is run as
+  `op run --env-file=.env.op -- make <target>`, which resolves those
+  references and injects them as environment variables for that process only.
+  Terraform consumes them via `TF_VAR_*` and the provider's env vars; Ansible
+  reads them the same way (`lookup('env', ...)`). The real values exist only
+  in 1Password.
 - **bootstrap.md** — the manual steps required on a fresh device (network +
   SSH access) before Terraform/Ansible can manage it. Keep it minimal and up
   to date: it is the disaster-recovery entry point.

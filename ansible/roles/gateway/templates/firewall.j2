@@ -40,6 +40,13 @@ set firewall ipv6 forward filter rule 210 outbound-interface name '{{ lan_interf
 set firewall ipv6 forward filter rule 210 protocol 'tcp'
 set firewall ipv6 forward filter rule 210 destination port '443'
 
+set firewall ipv6 forward filter rule 215 description 'DNS from trusted to polaris'
+set firewall ipv6 forward filter rule 215 action 'accept'
+set firewall ipv6 forward filter rule 215 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
+set firewall ipv6 forward filter rule 215 outbound-interface name '{{ lan_interface }}.{{ vlans.services }}'
+set firewall ipv6 forward filter rule 215 protocol 'tcp_udp'
+set firewall ipv6 forward filter rule 215 destination port '53'
+
 set firewall ipv6 forward filter rule 220 description 'trusted to iot devices'
 set firewall ipv6 forward filter rule 220 action 'accept'
 set firewall ipv6 forward filter rule 220 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'

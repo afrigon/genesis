@@ -5,6 +5,8 @@ timezone: America/Toronto
 # ULA addressing: fd22:1337:6769:{vlan}::/64, gateway always ::1
 ula_prefix: "fd22:1337:6769"
 
+services_root: /opt
+
 ntp_servers:
   - time.cloudflare.com
   - time.google.com
@@ -12,6 +14,9 @@ ntp_servers:
 dns_resolvers:
   - 2001:4860:4860::6464
   - 2001:4860:4860::64
+
+# polaris - internal resolver, the dns VM on the services VLAN
+polaris_address: "{{ ula_prefix }}:30::2"
 
 # Standard login banner for every ssh-enabled host
 login_banner: |2

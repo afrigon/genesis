@@ -1,4 +1,6 @@
 # Managed by genesis (Ansible).
+nameserver {{ polaris_address }}
 {% for ns in dns_resolvers %}
 nameserver {{ ns }}
 {% endfor %}
+options timeout:1

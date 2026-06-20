@@ -1,0 +1,8 @@
+---
+- name: Configure core VM
+  hosts: core
+  become: true
+  gather_facts: true
+  roles:
+    - common
+    - docker
