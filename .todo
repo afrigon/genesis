@@ -1,16 +1,14 @@
 # Deferred work
 
-- Remove the trusted VLAN dual-stack (IPv4) once Windows CLAT ships in stable:
-  repo side per the trusted_ipv4 comment in host_vars/vanguard.yml, then on
+- Remove the guest VLAN dual-stack (IPv4) once Windows CLAT ships in stable:
+  repo side per the guest_ipv4 comment in host_vars/vanguard.yml, then on
   vanguard:
-    delete interfaces ethernet eth2 vif 20 address 10.0.20.1/24
-    delete service dhcp-server
+    delete interfaces ethernet eth2 vif 50 address 10.0.50.1/24
+    delete service dhcp-server shared-network-name guest
     delete nat source rule 1000
     delete firewall ipv4 input filter rule 1000
     delete firewall ipv4 input filter rule 1001
     delete firewall ipv4 forward filter rule 1000
-  (use 'delete service dhcp-server shared-network-name trusted' instead if
-  other DHCPv4 scopes exist by then)
 
 - Create the untrusted VLAN (60) in the gateway role: internet only, no
   inter-VLAN access; intra-VLAN isolation via Proxmox per-VM firewall (and

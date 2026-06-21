@@ -28,7 +28,7 @@
     - router-advert
     - nat64
     - firewall
-    - ipv4-trusted
+    - ipv4-guest
 
 - name: Remove default VyOS NTP servers
   vyos.vyos.vyos_config:

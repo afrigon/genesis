@@ -15,9 +15,17 @@ before automation can take over).
   (self-hosted DNS), never by hard-coded address, wherever possible.
 - **Secure by default.** Every service must have proper authentication and a
   valid SSL/TLS certificate — no plain HTTP, no unauthenticated services.
-- **Reverse proxy only.** Services must not be directly reachable; all access
-  goes through the reverse proxy (harmony), which enforces auth, SSL, and
-  access policy. Firewall rules should block direct access to service ports.
+- **Reverse proxy only.** Services must not be directly reachable; all client
+  access goes through the reverse proxy (harmony, on the `core` VM), which
+  enforces auth, SSL, and access policy. Backends run on the `services` VM;
+  harmony reaches them through a Traefik file-provider config — one route per
+  service mapping `{service}.x` to its backend `services.sol.x:{port}` (Traefik's
+  label auto-discovery only sees containers on its own Docker host, and harmony
+  runs on a different host from the apps). Enforcement is entirely on vanguard,
+  not host firewalls: the forward chain default-drops and only
+  `clients → harmony:443` is opened, so clients cannot reach backend ports.
+  Stronger intra-tier isolation, if ever needed, comes from giving the app tier
+  its own VLAN (gateway-mediated) — never host-level firewalls.
 - **Declarative over imperative.** All configuration lives in this repo.
   Manual changes on devices are considered drift and should be folded back
   into code.
@@ -58,14 +66,27 @@ More VLANs will be added for untrusted services as needed.
 - **Dual prefixes:** hosts get a ULA address (internal communication, DNS,
   static config) plus a GUA via SLAAC from the ISP-delegated prefix (outbound
   internet). Never hard-code GUAs — the delegated prefix can change.
-- **IPv4 reachability:** NAT64 on vanguard translates `64:ff9b::/96`; DNS64
-  resolvers (Google's, until polaris does DNS64 locally) synthesize AAAA
-  records into that prefix. The WAN's DHCPv4 address is the network's only
-  IPv4 presence.
-- **Temporary exception — trusted VLAN is dual-stack:** Windows has no stable
-  CLAT yet, so IPv4-only applications (games) need native IPv4. VLAN 20 gets
-  DHCPv4 (`10.0.20.0/24`) + NAT44, fully isolated in
-  `roles/gateway/templates/ipv4-trusted.j2` and the `trusted_ipv4` var.
+- **DNS:** polaris (AdGuard, `dns.sol.x`) is the resolver and does DNS64
+  locally, synthesizing IPv4-only names into `64:ff9b::/96`; Cloudflare/Google
+  are plain upstreams. Clients are pointed at polaris via RA RDNSS,
+  **polaris-only** on trusted/management/services — no DNS64 fallback in the RA,
+  because RDNSS has no primary/backup (clients treat advertised servers as
+  peers), so a fallback would let them bypass polaris and miss `.x`/filtering.
+  iot/guest stay on public DNS64.
+- **Host resolv.conf** lists polaris first with DNS64 as fallback — safe here
+  because the glibc resolver honors order (falls through only on no response),
+  which also avoids a DNS bootstrap loop for sol / the dns VM when polaris is
+  down. vanguard keeps its own upstreams and never depends on a service behind
+  it.
+- **IPv4 reachability:** NAT64 on vanguard translates `64:ff9b::/96`; polaris's
+  DNS64 supplies the synthesized records. The WAN's DHCPv4 address is the
+  network's only IPv4 presence.
+- **Temporary exception — guest VLAN is dual-stack:** Windows has no stable
+  CLAT yet, so IPv4-only needs (games, an IPv4-only work VPN) require native
+  IPv4. The guest VLAN (50) carries it — hop onto `x-guest` when you need IPv4 —
+  so trusted stays pure IPv6 (a real IPv6-only testbed). VLAN 50 gets DHCPv4
+  (`10.0.50.0/24`) + NAT44, internet-only, in
+  `roles/gateway/templates/ipv4-guest.j2` and the `guest_ipv4` var.
   Remove when Windows CLAT reaches stable (PREF64 is already advertised, so
   clients switch over automatically).
 - **Untagged LAN traffic is intentionally dead:** bare eth2 has no prefix and
@@ -83,8 +104,16 @@ More VLANs will be added for untrusted services as needed.
 ## Naming convention
 
 Everything is space themed and referenced by name via self-hosted DNS
-(polaris), following the convention `{service}.x` (e.g. `gaia.x`,
-`andromeda.x`).
+(polaris). Names resolve in three forms:
+
+- **Services** — `{service}.x` (e.g. `gaia.x`, `andromeda.x`).
+  Location-independent: they resolve to harmony, which routes by hostname, so a
+  service can move hosts without its name changing.
+- **VMs** — `{vm}.{node}.x` (e.g. `core.sol.x`, `services.sol.x`), tied to the
+  Proxmox node they run on.
+- **Physical hosts** — bare `{host}.x` (`vanguard.x`, `sol.x`).
+
+`polaris.x` is the DNS *service*, distinct from the `dns` VM (`dns.sol.x`).
 
 TLS for `.x` names is issued by an internal CA (atlas, step-ca). Its root
 certificate is distributed to managed hosts by Ansible and trusted manually
@@ -107,6 +136,15 @@ name rationale — lives in `services.md`. New services are added there first.
   Terraform consumes them via `TF_VAR_*` and the provider's env vars; Ansible
   reads them the same way (`lookup('env', ...)`). The real values exist only
   in 1Password.
+- **Services — Docker Compose on the VMs.** Each service is an Ansible role,
+  deployed as a Compose project in its own dir under `/opt` (`services_root`).
+  The role ships a hand-written, static `files/compose.yaml` (templated only
+  when it needs injected/secret values) and brings it up inline with
+  `community.docker.docker_compose_v2` — no shared deploy role. Config is
+  declarative: rendered every run, container recreated on change. Per-host
+  playbooks (`dns.yml`, `core.yml`, `services.yml`) list `common`, `docker`,
+  then the host's service roles, each tagged with its name for
+  `make apply LIMIT=<host> TAGS=<service>`.
 - **bootstrap.md** — the manual steps required on a fresh device (network +
   SSH access) before Terraform/Ansible can manage it. Keep it minimal and up
   to date: it is the disaster-recovery entry point.
