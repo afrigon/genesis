@@ -6,3 +6,4 @@
   roles:
     - common
     - docker
+    - { role: atlas, tags: atlas }

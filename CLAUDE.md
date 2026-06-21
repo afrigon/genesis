@@ -11,21 +11,31 @@ before automation can take over).
 - **IPv6 only.** The network is IPv6-only end to end. IPv4 is added only where
   a specific device or service makes it unavoidable, and each exception must be
   documented.
-- **Everything by name.** Hosts and services are referenced by DNS name
-  (self-hosted DNS), never by hard-coded address, wherever possible.
+- **Everything by name — on the data plane.** Client-facing services are
+  referenced by DNS name (self-hosted DNS) so they get TLS and can move hosts.
+  The *control/bootstrap plane* — Terraform, inventory, firewall rules, the
+  addresses services bind to — uses static IPs: it must work before and without
+  DNS (you can't use DNS to deploy DNS). Internal machine-to-machine hops (e.g.
+  harmony → a backend) also use static IPs, so polaris is only ever a dependency
+  for client-facing name resolution, never for running-service traffic.
 - **Secure by default.** Every service must have proper authentication and a
   valid SSL/TLS certificate — no plain HTTP, no unauthenticated services.
 - **Reverse proxy only.** Services must not be directly reachable; all client
   access goes through the reverse proxy (harmony, on the `core` VM), which
   enforces auth, SSL, and access policy. Backends run on the `services` VM;
   harmony reaches them through a Traefik file-provider config — one route per
-  service mapping `{service}.x` to its backend `services.sol.x:{port}` (Traefik's
-  label auto-discovery only sees containers on its own Docker host, and harmony
-  runs on a different host from the apps). Enforcement is entirely on vanguard,
-  not host firewalls: the forward chain default-drops and only
-  `clients → harmony:443` is opened, so clients cannot reach backend ports.
+  service mapping `{service}.x` to its backend's static address on the services
+  VM (Traefik's label auto-discovery only sees containers on its own Docker
+  host, and harmony runs on a different host from the apps). Enforcement is
+  entirely on vanguard, not host firewalls: the forward chain default-drops and
+  only `clients → harmony:443` is opened, so clients cannot reach backend ports.
   Stronger intra-tier isolation, if ever needed, comes from giving the app tier
-  its own VLAN (gateway-mediated) — never host-level firewalls.
+  its own VLAN (gateway-mediated) — never host-level firewalls. harmony
+  terminates client TLS and speaks plain HTTP to backends; that hop is fine only
+  while it stays host-internal (VM-to-VM on sol's bridge never reaches the
+  physical wire). A backend on a different *physical* machine would cross the
+  wire in plaintext, so it must get end-to-end TLS (re-encrypt to a backend
+  serving its own atlas cert).
 - **Declarative over imperative.** All configuration lives in this repo.
   Manual changes on devices are considered drift and should be folded back
   into code.
@@ -145,6 +155,18 @@ name rationale — lives in `services.md`. New services are added there first.
   playbooks (`dns.yml`, `core.yml`, `services.yml`) list `common`, `docker`,
   then the host's service roles, each tagged with its name for
   `make apply LIMIT=<host> TAGS=<service>`.
+- **Container networking — bridge by default, host by exception.** Services run
+  in bridge mode and publish only the ports they need; the Docker daemon is
+  configured for IPv6 (`/etc/docker/daemon.json`: `ipv6` + `ip6tables` +
+  `fixed-cidr-v6` `fd23:1337:6769::/64`) so published ports are reachable over
+  IPv6. Bridge gives per-container isolation and avoids host-port clashes when
+  many services share a host. Use host mode only when a service genuinely needs
+  the host's real network — e.g. polaris (DNS), which must see real client
+  source IPs (a bridged `:53` would SNAT every query to the docker gateway). The
+  docker-bridge ULA is host-local and NAT'd — never on the LAN — so it sits
+  outside the routed `fd22:1337:6769::/48`. Every container sets `container_name`
+  matching its compose service, so it has a stable name for `docker logs`/`exec`
+  instead of Compose's `<project>-<service>-<N>`.
 - **bootstrap.md** — the manual steps required on a fresh device (network +
   SSH access) before Terraform/Ansible can manage it. Keep it minimal and up
   to date: it is the disaster-recovery entry point.

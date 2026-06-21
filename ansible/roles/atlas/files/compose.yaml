@@ -1,0 +1,21 @@
+services:
+  atlas:
+    image: smallstep/step-ca:0.30.2
+    container_name: atlas
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./step:/home/step
+
+  atlas-ca:
+    image: busybox:1.37
+    container_name: atlas-ca
+    restart: unless-stopped
+    user: "65534:65534"
+    command: ["httpd", "-f", "-v", "-p", "9001", "-h", "/www"]
+    ports:
+      - "9001:9001"
+    volumes:
+      - ./www/index.html:/www/index.html:ro
+      - ./step/certs/root_ca.crt:/www/root_ca.crt:ro

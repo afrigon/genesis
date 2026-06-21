@@ -1,0 +1,87 @@
+---
+- name: Ensure atlas secrets are present (run under op)
+  ansible.builtin.assert:
+    that:
+      - lookup('env', 'ATLAS_INTERMEDIATE_CA_KEY') | length > 0
+      - lookup('env', 'ATLAS_INTERMEDIATE_CA_PASSWORD') | length > 0
+    fail_msg: "ATLAS_* secrets missing — run: op run --env-file=ansible/.env.op -- make apply LIMIT=core"
+    quiet: true
+
+- name: Create atlas project directories
+  ansible.builtin.file:
+    path: "{{ services_root }}/atlas/step/{{ item }}"
+    state: directory
+    owner: "1000"
+    group: "1000"
+    mode: "0700"
+  loop:
+    - config
+    - certs
+    - secrets
+    - db
+
+- name: Deploy compose file
+  ansible.builtin.copy:
+    src: compose.yaml
+    dest: "{{ services_root }}/atlas/compose.yaml"
+    mode: "0640"
+
+- name: Create atlas-ca web root
+  ansible.builtin.file:
+    path: "{{ services_root }}/atlas/www"
+    state: directory
+    mode: "0755"
+
+- name: Deploy atlas-ca landing page
+  ansible.builtin.copy:
+    src: index.html
+    dest: "{{ services_root }}/atlas/www/index.html"
+    mode: "0644"
+
+- name: Deploy ca.json
+  ansible.builtin.copy:
+    src: ca.json
+    dest: "{{ services_root }}/atlas/step/config/ca.json"
+    owner: "1000"
+    group: "1000"
+    mode: "0644"
+  register: atlas_config
+
+- name: Deploy CA certificates
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ services_root }}/atlas/step/certs/{{ item }}"
+    owner: "1000"
+    group: "1000"
+    mode: "0644"
+  loop:
+    - root_ca.crt
+    - intermediate_ca.crt
+  register: atlas_certs
+
+- name: Render intermediate key
+  ansible.builtin.template:
+    src: intermediate_ca_key.j2
+    dest: "{{ services_root }}/atlas/step/secrets/intermediate_ca_key"
+    owner: "1000"
+    group: "1000"
+    mode: "0600"
+  no_log: true
+  register: atlas_key
+
+- name: Render CA password
+  ansible.builtin.template:
+    src: password.j2
+    dest: "{{ services_root }}/atlas/step/secrets/password"
+    owner: "1000"
+    group: "1000"
+    mode: "0600"
+  no_log: true
+  register: atlas_password
+
+- name: Deploy atlas
+  community.docker.docker_compose_v2:
+    project_src: "{{ services_root }}/atlas"
+    pull: missing
+    remove_orphans: true
+    recreate: "{{ 'always' if (atlas_config is changed or atlas_certs is changed or atlas_key is changed or atlas_password is changed) else 'auto' }}"

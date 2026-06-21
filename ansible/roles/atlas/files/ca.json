@@ -1,0 +1,24 @@
+{
+  "root": "/home/step/certs/root_ca.crt",
+  "crt": "/home/step/certs/intermediate_ca.crt",
+  "key": "/home/step/secrets/intermediate_ca_key",
+  "address": ":9000",
+  "dnsNames": [
+    "atlas.x"
+  ],
+  "logger": {
+    "format": "text"
+  },
+  "db": {
+    "type": "badgerv2",
+    "dataSource": "/home/step/db"
+  },
+  "authority": {
+    "provisioners": [
+      {
+        "type": "ACME",
+        "name": "acme"
+      }
+    ]
+  }
+}

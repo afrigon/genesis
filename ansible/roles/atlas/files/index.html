@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>x · internal CA</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 48rem; margin: 4rem auto; padding: 0 1.5rem;
+      background: #0d1117; color: #e6edf3; line-height: 1.6;
+    }
+    h1 { font-weight: 600; margin-bottom: .25rem; }
+    h2 { font-weight: 600; margin-top: 2.5rem; }
+    code { background: #161b22; padding: .15em .4em; border-radius: 4px; font-size: .95em; }
+    pre { background: #161b22; padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; font-size: .9em; }
+    pre code { background: none; padding: 0; }
+    .tok-cmd  { color: #7ee787; }
+    .tok-flag { color: #ffa657; }
+    .tok-arg  { color: #a5d6ff; }
+    a.btn {
+      display: inline-block; margin: 1.75rem 0;
+      background: #2563eb; color: #fff; text-decoration: none;
+      padding: .75rem 1.5rem; border-radius: 8px; font-weight: 600;
+    }
+    a.btn:hover { background: #1d4ed8; }
+    li { margin: .35rem 0; }
+  </style>
+</head>
+<body>
+  <h1>Internal Certificate Authority</h1>
+  <p>
+    This is the root certificate for the <code>.x</code> network. Install and
+    trust it so your device accepts the certificates served by internal services
+    (e.g. <code>https://andromeda.x</code>) without warnings.
+  </p>
+
+  <a class="btn" href="root_ca.crt" download>Download root_ca.crt</a>
+
+  <h2>Installing</h2>
+  <ul>
+    <li><strong>Linux:</strong>
+      <pre><code><span class="tok-cmd">curl</span> <span class="tok-flag">-fsSL</span> <span class="tok-arg">http://ca.x/root_ca.crt</span> <span class="tok-flag">-o</span> <span class="tok-arg">/usr/local/share/ca-certificates/x-root-ca.crt</span>
+<span class="tok-cmd">update-ca-certificates</span></code></pre>
+    </li>
+    <li><strong>macOS:</strong> open in Keychain Access → System keychain → set to <em>Always Trust</em></li>
+    <li><strong>Windows:</strong> import into <em>Trusted Root Certification Authorities</em></li>
+    <li><strong>iOS / Android:</strong> open the file, install the profile, then enable full trust in settings</li>
+  </ul>
+</body>
+</html>

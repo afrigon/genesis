@@ -43,3 +43,12 @@
     owner: root
     group: root
     mode: "0644"
+
+- name: Trust the internal CA root
+  ansible.builtin.copy:
+    src: "{{ root_ca_cert }}"
+    dest: /usr/local/share/ca-certificates/x-root-ca.crt
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Update CA trust

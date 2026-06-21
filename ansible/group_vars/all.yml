@@ -18,6 +18,9 @@ dns_resolvers:
 # polaris - internal resolver, the dns VM on the services VLAN
 polaris_address: "{{ ula_prefix }}:30::2"
 
+# Canonical internal CA root, distributed into host trust stores by common
+root_ca_cert: "{{ inventory_dir }}/roles/atlas/files/root_ca.crt"
+
 # Standard login banner for every ssh-enabled host
 login_banner: |2
      ____ _____ _   _ _____ ____ ___ ____             *

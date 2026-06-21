@@ -3,3 +3,6 @@
   ansible.builtin.service:
     name: ssh
     state: restarted
+
+- name: Update CA trust
+  ansible.builtin.command: update-ca-certificates

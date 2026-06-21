@@ -5,3 +5,5 @@ dns_records:
   - { name: core.sol.x, address: 'fd22:1337:6769:30::3' }
   - { name: services.sol.x, address: 'fd22:1337:6769:30::4' }
   - { name: polaris.x, address: 'fd22:1337:6769:30::2' }
+  - { name: atlas.x, address: 'fd22:1337:6769:30::3' }
+  - { name: ca.x, address: 'fd22:1337:6769:30::3' }

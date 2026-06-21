@@ -1,0 +1,5 @@
+{
+  "ipv6": true,
+  "fixed-cidr-v6": "fd23:1337:6769::/64",
+  "ip6tables": true
+}
