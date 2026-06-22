@@ -176,6 +176,20 @@ restructured as the project grows.
 
 ## Conventions for changes
 
+- **Never run commands against the live infrastructure.** The agent does not
+  touch vanguard, sol, the VMs, or any managed host — no raw SSH, no ad-hoc
+  Ansible, no `make check`/`make apply`/`terraform apply`, and **not even
+  read-only diagnostics** (`show ipv6 neighbors`, `monitor log`, `docker ps`,
+  etc.). The operator runs everything by hand. The agent's job is to produce
+  the exact command(s) and say **where to run them** (e.g. "on vanguard",
+  "on the services VM"); the operator executes and pastes results back. This
+  keeps a human in the loop on every change and every probe of production.
+- **Comments explain the non-obvious _why_, never the _what_.** Default to no
+  comment. Add one only for what the code can't show: a constraint, trade-off,
+  gotcha, or provenance. Never restate what a line plainly does, and don't
+  narrate structure with prose — a terse section header is enough. Deferred work
+  belongs in `.todo`, never in a code comment. Match the surrounding files; they
+  are sparsely commented.
 - Use IPv6 addresses from the ULA plan above; never invent addresses outside it.
 - New hosts/services get a space-themed name, a DNS record, and an inventory
   entry.
@@ -202,7 +216,8 @@ restructured as the project grows.
 ## Debugging firewall issues
 
 The firewall logs every dropped packet (`default-log` on the `forward` and
-`input` chains). Workflow, on vanguard, when something can't connect:
+`input` chains). These are commands the **operator** runs on vanguard (the
+agent provides them, per the rule above) when something can't connect:
 
 1. **Watch drops live:** `monitor log` (or `show log firewall`) while
    reproducing the connection. A drop line shows chain, interfaces, and

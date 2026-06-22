@@ -32,6 +32,7 @@ untrusted VLAN entries.
 | janus     | Authelia                     | SSO / authentication          |
 | atlas     | step-ca                      | Internal certificate authority |
 | airlock   | Tailscale                    | VPN / remote access (on sol)  |
+| unity     | UniFi Network Application    | Network controller (APs, switches) |
 | hubble    | Grafana (+ Prometheus, Loki) | Monitoring & logs             |
 | pulsar    | Uptime Kuma                  | Uptime monitoring             |
 | houston   | Homepage (or custom web app) | Dashboard / home page         |
@@ -77,6 +78,7 @@ reach it, it can only reach the internet.
 - **janus** — Saturn moon, god of gates and doorways; the auth gateway
 - **atlas** — the titan holding everything up; the root of trust
 - **airlock** — the only controlled way in from outside; VPN
+- **unity** — ISS Node 1, the module that joins all the others into one station; the controller that unifies the UniFi fabric (and it sounds like UniFi)
 - **hubble** — observes everything; monitoring
 - **pulsar** — emits regular signals you can set your clock by; uptime checks
 - **houston** — mission control, the page you glance at

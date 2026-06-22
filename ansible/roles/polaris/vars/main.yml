@@ -7,3 +7,6 @@ dns_records:
   - { name: polaris.x, address: 'fd22:1337:6769:30::2' }
   - { name: atlas.x, address: 'fd22:1337:6769:30::3' }
   - { name: ca.x, address: 'fd22:1337:6769:30::3' }
+  - { name: unity.x, address: 'fd22:1337:6769:30::3' }
+  # UniFi devices hardcode discovery to the bare name `unifi`
+  - { name: unifi, address: 'fd22:1337:6769:30::4' }
