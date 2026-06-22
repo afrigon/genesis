@@ -1,0 +1,43 @@
+---
+- name: Create harmony project directories
+  ansible.builtin.file:
+    path: "{{ services_root }}/harmony/{{ item }}"
+    state: directory
+    mode: "0750"
+  loop:
+    - dynamic
+    - certs
+    - acme
+
+- name: Deploy compose file
+  ansible.builtin.copy:
+    src: compose.yaml
+    dest: "{{ services_root }}/harmony/compose.yaml"
+    mode: "0640"
+
+- name: Deploy static config
+  ansible.builtin.copy:
+    src: traefik.yml
+    dest: "{{ services_root }}/harmony/traefik.yml"
+    mode: "0644"
+  register: harmony_static
+
+- name: Deploy dynamic config
+  ansible.builtin.copy:
+    src: dynamic/
+    dest: "{{ services_root }}/harmony/dynamic/"
+    mode: "0644"
+
+- name: Trust the atlas root for ACME
+  ansible.builtin.copy:
+    src: "{{ root_ca_cert }}"
+    dest: "{{ services_root }}/harmony/certs/root_ca.crt"
+    mode: "0644"
+  register: harmony_ca
+
+- name: Deploy harmony
+  community.docker.docker_compose_v2:
+    project_src: "{{ services_root }}/harmony"
+    pull: missing
+    remove_orphans: true
+    recreate: "{{ 'always' if (harmony_static is changed or harmony_ca is changed) else 'auto' }}"

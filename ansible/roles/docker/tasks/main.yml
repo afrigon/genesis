@@ -59,3 +59,12 @@
 
 - name: Restart dockerd now if its config changed, before any service role runs
   meta: flush_handlers
+
+- name: Ensure the shared service network exists
+  ansible.builtin.command:
+    cmd: docker network create genesis
+  register: docker_net
+  changed_when: docker_net.rc == 0
+  failed_when:
+    - docker_net.rc != 0
+    - "'already exists' not in docker_net.stderr"

@@ -3,8 +3,10 @@ services:
     image: smallstep/step-ca:0.30.2
     container_name: atlas
     restart: unless-stopped
-    ports:
-      - "9000:9000"
+    networks:
+      genesis:
+        aliases:
+          - atlas.x
     volumes:
       - ./step:/home/step
 
@@ -14,8 +16,12 @@ services:
     restart: unless-stopped
     user: "65534:65534"
     command: ["httpd", "-f", "-v", "-p", "9001", "-h", "/www"]
-    ports:
-      - "9001:9001"
+    networks:
+      - genesis
     volumes:
       - ./www/index.html:/www/index.html:ro
       - ./step/certs/root_ca.crt:/www/root_ca.crt:ro
+
+networks:
+  genesis:
+    external: true

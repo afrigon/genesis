@@ -35,6 +35,15 @@
   devices must tag their own traffic)
 - Once polaris is built: do DNS64 locally (AdGuard), point RDNSS at polaris,
   and restore Cloudflare + Google as plain upstreams
+- Split DNS into layers so we can serve record types AdGuard can't (TXT/SRV/CAA
+  — AdGuard only does A/AAAA/CNAME rewrites). Proposed flow: clients -> polaris
+  (AdGuard: filter + per-client logging) -> a resolver authoritative for .x (any
+  record type, from a typed zone in the repo) that also does DNS64 and forwards
+  public queries to Google; polaris stops doing DNS64 / .x rewrites. Runs on the
+  dns VM on a non-53 port with AdGuard's upstream pointed at it. Also unlocks
+  ACME DNS-01 / wildcard certs later. Software undecided: PowerDNS (Route-53-
+  style, API-first, auth+recursor split — AWS structures Route 53 the same way),
+  BIND9 (all-in-one), or Knot (modern, split).
 - Ship vanguard logs to hubble via remote syslog (Grafana + Loki + Alloy) and
   add the management -> services syslog firewall rule
 - Consider restricting the forward ICMPv6 rule to specific types (currently

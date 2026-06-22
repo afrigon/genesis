@@ -1,0 +1,22 @@
+services:
+  harmony:
+    image: traefik:v3.7.5
+    container_name: harmony
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - genesis
+    environment:
+      # Trust the atlas root so ACME (lego) accepts atlas's TLS over :9000
+      - LEGO_CA_CERTIFICATES=/certs/root_ca.crt
+    volumes:
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./dynamic:/dynamic:ro
+      - ./certs/root_ca.crt:/certs/root_ca.crt:ro
+      - ./acme:/acme
+
+networks:
+  genesis:
+    external: true

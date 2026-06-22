@@ -1,0 +1,19 @@
+http:
+  routers:
+    polaris:
+      rule: "Host(`polaris.x`)"
+      entryPoints:
+        - websecure
+      service: polaris
+      tls:
+        certResolver: atlas
+  services:
+    polaris:
+      loadBalancer:
+        servers:
+          - url: "http://[fd22:1337:6769:30::2]:3000"
+
+tls:
+  options:
+    default:
+      minVersion: VersionTLS13

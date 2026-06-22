@@ -7,3 +7,4 @@
     - common
     - docker
     - { role: atlas, tags: atlas }
+    - { role: harmony, tags: harmony }

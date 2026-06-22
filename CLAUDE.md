@@ -179,6 +179,8 @@ restructured as the project grows.
 - Use IPv6 addresses from the ULA plan above; never invent addresses outside it.
 - New hosts/services get a space-themed name, a DNS record, and an inventory
   entry.
+- When pinning a version (container image tag, package, schema), look up the
+  actual current latest version rather than guessing from memory — they move.
 - Any IPv4 usage must be justified in a comment or doc next to where it is
   introduced.
 - Follow the addressing rules above: static addresses for infrastructure,
