@@ -17,7 +17,7 @@ certificate must be trusted on every managed device.
 | titan    | Windows workstation           | trusted      |
 | ceres    | NAS (dedicated machine)       | management   |
 | quasar   | Wi-Fi access point            | management   |
-| lagrange | Managed switch                | management   |
+| nexus    | Managed switch                | management   |
 | rover    | Mac mini (macOS CI runner)    | untrusted    |
 
 ## Services
@@ -50,7 +50,7 @@ For services running 3rd-party or arbitrary code. Internet access only: no
 access to other VLANs, and no access to each other within the VLAN.
 Intra-VLAN traffic never reaches vanguard, so isolation is enforced at the
 bridge/switch layer: the Proxmox per-VM firewall for guests on sol, and port
-isolation on lagrange for physical machines.
+isolation on nexus for physical machines.
 
 | Name   | Software              | Role                          |
 |--------|-----------------------|-------------------------------|
@@ -94,7 +94,7 @@ reach it, it can only reach the internet.
 - **rover** — same, but it's hardware that does the work; macOS runner
 - **ceres** — dwarf planet in the asteroid belt, a mass of accumulated stuff; storage
 - **quasar** — the brightest radio source in the sky; the AP
-- **lagrange** — the point where things meet and hold position; the switch
+- **nexus** — the central junction where every connection converges; the switch
 - **nova** — creates new matter; 3D printer
 - **aurora** — paints color across the sky; the ink printer
 - **pioneer** — the Pioneer plaque, a tag bolted on to identify; the label printer

@@ -1,0 +1,44 @@
+set interfaces ethernet {{ config_interface }} description 'CONFIG (recovery access)'
+set interfaces ethernet {{ config_interface }} address '{{ ula_prefix }}::1/64'
+
+set service router-advert interface {{ config_interface }} prefix ::/64
+set service router-advert interface {{ config_interface }} nat64prefix '64:ff9b::/96'
+set service router-advert interface {{ config_interface }} name-server '{{ polaris_address }}'
+
+{# IPv4 exception: UniFi gear reads DNS only from DHCPv4 (ignores RA RDNSS and
+   DHCPv6). 192.168.1.0/24 so a factory device (defaults to 192.168.1.20) is
+   on-subnet; it gets a v4 DNS handoff to resolve `unifi`, then informs over
+   IPv6. Internal-only, no NAT. #}
+set interfaces ethernet {{ config_interface }} address '192.168.1.1/24'
+
+set service dhcp-server shared-network-name config subnet 192.168.1.0/24 subnet-id '1'
+set service dhcp-server shared-network-name config subnet 192.168.1.0/24 option default-router '192.168.1.1'
+set service dhcp-server shared-network-name config subnet 192.168.1.0/24 option name-server '192.168.1.1'
+set service dhcp-server shared-network-name config subnet 192.168.1.0/24 range 0 start '192.168.1.100'
+set service dhcp-server shared-network-name config subnet 192.168.1.0/24 range 0 stop '192.168.1.199'
+
+set service dns forwarding listen-address '192.168.1.1'
+set service dns forwarding allow-from '192.168.1.0/24'
+set service dns forwarding name-server '{{ polaris_address }}'
+
+set firewall ipv6 forward filter rule 110 description 'config port reaches everything'
+set firewall ipv6 forward filter rule 110 action 'accept'
+set firewall ipv6 forward filter rule 110 inbound-interface name '{{ config_interface }}'
+
+set firewall ipv6 input filter rule 21 description 'SSH from config port'
+set firewall ipv6 input filter rule 21 action 'accept'
+set firewall ipv6 input filter rule 21 inbound-interface name '{{ config_interface }}'
+set firewall ipv6 input filter rule 21 protocol 'tcp'
+set firewall ipv6 input filter rule 21 destination port '22'
+
+set firewall ipv4 input filter rule 1010 description 'DHCP from config port'
+set firewall ipv4 input filter rule 1010 action 'accept'
+set firewall ipv4 input filter rule 1010 inbound-interface name '{{ config_interface }}'
+set firewall ipv4 input filter rule 1010 protocol 'udp'
+set firewall ipv4 input filter rule 1010 destination port '67'
+
+set firewall ipv4 input filter rule 1011 description 'DNS from config port'
+set firewall ipv4 input filter rule 1011 action 'accept'
+set firewall ipv4 input filter rule 1011 inbound-interface name '{{ config_interface }}'
+set firewall ipv4 input filter rule 1011 protocol 'tcp_udp'
+set firewall ipv4 input filter rule 1011 destination port '53'

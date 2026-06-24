@@ -40,9 +40,15 @@
 
   <h2>Installing</h2>
   <ul>
-    <li><strong>Linux:</strong>
+    <li><strong>Linux (Debian/Ubuntu):</strong>
       <pre><code><span class="tok-cmd">curl</span> <span class="tok-flag">-fsSL</span> <span class="tok-arg">http://ca.x/root_ca.crt</span> <span class="tok-flag">-o</span> <span class="tok-arg">/usr/local/share/ca-certificates/x-root-ca.crt</span>
+<span class="tok-cmd">chmod</span> <span class="tok-arg">644</span> <span class="tok-arg">/usr/local/share/ca-certificates/x-root-ca.crt</span>
 <span class="tok-cmd">update-ca-certificates</span></code></pre>
+    </li>
+    <li><strong>Linux (Arch):</strong>
+      <pre><code><span class="tok-cmd">curl</span> <span class="tok-flag">-fsSL</span> <span class="tok-arg">http://ca.x/root_ca.crt</span> <span class="tok-flag">-o</span> <span class="tok-arg">/etc/ca-certificates/trust-source/anchors/x-root-ca.crt</span>
+<span class="tok-cmd">chmod</span> <span class="tok-arg">644</span> <span class="tok-arg">/etc/ca-certificates/trust-source/anchors/x-root-ca.crt</span>
+<span class="tok-cmd">update-ca-trust</span></code></pre>
     </li>
     <li><strong>macOS:</strong> open in Keychain Access → System keychain → set to <em>Always Trust</em></li>
     <li><strong>Windows:</strong> import into <em>Trusted Root Certification Authorities</em></li>

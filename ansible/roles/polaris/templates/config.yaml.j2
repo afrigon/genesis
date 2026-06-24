@@ -1,0 +1,23 @@
+network:
+  listen:
+    - interface: ['::']
+      port: 53
+
+# Synthesize A -> AAAA into the NAT64 prefix. RFC 6147: skipped automatically
+# for names that already return AAAA, so the local zones below are untouched.
+dns64:
+  prefix: 64:ff9b::/96
+
+forward:
+{% for zone in dns_zones %}
+  # local zone -> polaris-auth (authoritative: trust the answer, don't recurse)
+  - subtree: {{ zone }}.
+    servers: [ {{ polaris_auth_address }}@53 ]
+    options:
+      authoritative: true
+      dnssec: false
+{% endfor %}
+  # everything else -> dual-stack public resolvers (forwarding, not recursion:
+  # an IPv6-only resolver can't reach IPv4-only authoritative servers)
+  - subtree: .
+    servers: [ 2606:4700:4700::1111, 2001:4860:4860::8888 ]

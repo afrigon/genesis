@@ -62,7 +62,7 @@
 
 - name: Ensure the shared service network exists
   ansible.builtin.command:
-    cmd: docker network create genesis
+    cmd: docker network create --ipv6 --subnet fd23:1337:6769:1::/64 genesis
   register: docker_net
   changed_when: docker_net.rc == 0
   failed_when:

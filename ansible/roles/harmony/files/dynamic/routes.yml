@@ -1,5 +1,22 @@
 http:
   routers:
+    # :80 redirects everything to HTTPS, except ca.x (served plain, below) —
+    # devices fetch the root over HTTP precisely because they don't trust .x yet.
+    http-catchall:
+      rule: "PathPrefix(`/`)"
+      entryPoints:
+        - web
+      service: noop
+      middlewares:
+        - https-redirect
+      priority: 1
+    ca:
+      rule: "Host(`ca.x`)"
+      entryPoints:
+        - web
+      service: ca
+      priority: 100
+
     polaris:
       rule: "Host(`polaris.x`)"
       entryPoints:
@@ -7,11 +24,45 @@ http:
       service: polaris
       tls:
         certResolver: atlas
+    unity:
+      rule: "Host(`unity.x`)"
+      entryPoints:
+        - websecure
+      service: unity
+      tls:
+        certResolver: atlas
+
   services:
+    noop:
+      loadBalancer:
+        servers:
+          - url: "http://localhost"
+    ca:
+      loadBalancer:
+        servers:
+          - url: "http://atlas-ca:9001"
     polaris:
       loadBalancer:
         servers:
           - url: "http://[fd22:1337:6769:30::2]:3000"
+    unity:
+      loadBalancer:
+        servers:
+          - url: "https://[fd22:1337:6769:30::4]:8443"
+        serversTransport: unity-backend
+
+  middlewares:
+    https-redirect:
+      redirectScheme:
+        scheme: https
+        permanent: true
+
+  serversTransports:
+    # UniFi only serves HTTPS, with its own self-signed cert, and can't easily be
+    # given an atlas cert — so harmony re-encrypts but skips verification. Safe
+    # only because this hop stays on sol's bridge and never reaches the wire.
+    unity-backend:
+      insecureSkipVerify: true
 
 tls:
   options:

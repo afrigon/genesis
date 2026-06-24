@@ -13,6 +13,8 @@ vlans:
   services: 30
   iot: 40
   guest: 50
+  untrusted: 60
+  edge: 70
 
 # Infrastructure VLANs: ULA advertised with no-autonomous-flag so statically
 # addressed hosts don't also pick up a duplicate SLAAC ULA. (GUA still
@@ -20,12 +22,15 @@ vlans:
 static_vlans:
   - management
   - services
+  - edge
+  - untrusted
 
 # VLANs whose clients are advertised polaris as resolver
 polaris_vlans:
   - trusted
   - management
   - services
+  - edge
 
 # Prefix length requested from the ISP via DHCPv6-PD
 pd_length: 56
@@ -38,7 +43,7 @@ name_servers:
   - 2001:4860:4860::8888
 
 # TEMPORARY IPv4 exception: the guest VLAN is dual-stacked so devices that still
-# need native IPv4 (games, an IPv4-only work VPN) can hop onto x-guest; trusted
+# need native IPv4 (games, IPv4-only VPNs) can hop onto x-guest; trusted
 # stays pure IPv6. Internet-only — no access to internal VLANs.
 # Remove once Windows CLAT ships in stable: delete this block, remove ipv4-guest
 # from the template loop in roles/gateway/tasks/main.yml, delete

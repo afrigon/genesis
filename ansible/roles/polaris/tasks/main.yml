@@ -1,32 +1,90 @@
 ---
-- name: Create polaris config directory
+- name: Require the polaris TSIG secret
+  ansible.builtin.assert:
+    that: lookup('env', 'POLARIS_TSIG_SECRET') | length > 0
+    fail_msg: "POLARIS_TSIG_SECRET is empty — run via op run --env-file=ansible/.env.op -- make ..."
+    quiet: true
+
+- name: Create polaris project directories
   ansible.builtin.file:
-    path: "{{ services_root }}/polaris/conf"
+    path: "{{ services_root }}/polaris/{{ item }}"
     state: directory
     mode: "0750"
+  loop:
+    - conf
+    - work
+    - resolver
+    - auth/zones
+    - auth/data
+
+- name: Disable systemd-resolved so polaris-filter can bind port 53
+  ansible.builtin.systemd:
+    name: systemd-resolved
+    state: stopped
+    enabled: false
+
+- name: Render filter (AdGuard) configuration
+  ansible.builtin.template:
+    src: AdGuardHome.yaml.j2
+    dest: "{{ services_root }}/polaris/conf/AdGuardHome.yaml"
+    mode: "0640"
+  register: polaris_filter_config
+
+- name: Render resolver (Knot Resolver) configuration
+  ansible.builtin.template:
+    src: config.yaml.j2
+    dest: "{{ services_root }}/polaris/resolver/config.yaml"
+    mode: "0640"
+  register: polaris_resolver_config
+
+- name: Render auth (Knot DNS) configuration
+  ansible.builtin.template:
+    src: knot.conf.j2
+    dest: "{{ services_root }}/polaris/auth/knot.conf"
+    mode: "0640"
+  no_log: true
+  register: polaris_auth_config
+
+- name: Render zone files
+  ansible.builtin.template:
+    src: zone.j2
+    dest: "{{ services_root }}/polaris/auth/zones/{{ zone }}.zone"
+    mode: "0640"
+  loop: "{{ dns_zones.keys() | list }}"
+  loop_control:
+    loop_var: zone
+  register: polaris_zones
 
 - name: Deploy compose file
   ansible.builtin.copy:
     src: compose.yaml
     dest: "{{ services_root }}/polaris/compose.yaml"
     mode: "0640"
-
-- name: Render AdGuard Home configuration
-  ansible.builtin.template:
-    src: AdGuardHome.yaml.j2
-    dest: "{{ services_root }}/polaris/conf/AdGuardHome.yaml"
-    mode: "0640"
-  register: polaris_config
-
-- name: Disable systemd-resolved so AdGuard can bind port 53
-  ansible.builtin.systemd:
-    name: systemd-resolved
-    state: stopped
-    enabled: false
+  register: polaris_compose
 
 - name: Deploy polaris
   community.docker.docker_compose_v2:
     project_src: "{{ services_root }}/polaris"
     pull: missing
     remove_orphans: true
-    recreate: "{{ 'always' if polaris_config is changed else 'auto' }}"
+    recreate: >-
+      {{ 'always' if (polaris_filter_config is changed
+                      or polaris_resolver_config is changed
+                      or polaris_auth_config is changed
+                      or polaris_compose is changed) else 'auto' }}
+
+# A recreate already reloads zones at startup; this only covers the case where
+# just a zone file changed and the containers were left running.
+- name: Reload zones changed without a container recreate
+  ansible.builtin.command:
+    cmd: "docker exec polaris-auth knotc zone-reload {{ item.zone }}."
+  loop: "{{ polaris_zones.results }}"
+  loop_control:
+    label: "{{ item.zone }}"
+  changed_when: true
+  when:
+    - item is changed
+    - not (polaris_filter_config is changed
+           or polaris_resolver_config is changed
+           or polaris_auth_config is changed
+           or polaris_compose is changed)

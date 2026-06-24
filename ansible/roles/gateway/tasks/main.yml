@@ -28,6 +28,7 @@
     - router-advert
     - nat64
     - firewall
+    - config-port
     - ipv4-guest
 
 - name: Remove default VyOS NTP servers

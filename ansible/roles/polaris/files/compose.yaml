@@ -1,11 +1,48 @@
 services:
-  polaris:
+  polaris-filter:
     image: adguard/adguardhome:v0.107.77
-    container_name: polaris
+    container_name: polaris-filter
     restart: unless-stopped
     # Host networking so AdGuard sees real client source IPs (per-client
     # logging/filtering) and binds DNS directly on the VM's addresses.
     network_mode: host
     volumes:
-      - ./work:/opt/adguardhome/work
       - ./conf:/opt/adguardhome/conf
+      - ./work:/opt/adguardhome/work
+
+  polaris-resolver:
+    image: cznic/knot-resolver:v6.4.0
+    container_name: polaris-resolver
+    restart: unless-stopped
+    networks:
+      polaris:
+        # static so polaris-filter (on the host) can reach it over the bridge
+        # IPv6 directly — no published port (must match polaris_resolver_address)
+        ipv6_address: fd23:1337:6769:2::a
+    volumes:
+      - ./resolver:/etc/knot-resolver
+
+  polaris-auth:
+    image: cznic/knot:v3.5.5
+    container_name: polaris-auth
+    restart: unless-stopped
+    networks:
+      polaris:
+        # static so polaris-resolver can forward the local zones to it
+        # (must match polaris_auth_address in the role vars)
+        ipv6_address: fd23:1337:6769:2::b
+    # harmony reaches it on the LAN for ACME DDNS
+    ports:
+      - "5354:53/udp"
+      - "5354:53/tcp"
+    volumes:
+      - ./auth/knot.conf:/etc/knot/knot.conf:ro
+      - ./auth/zones:/etc/knot/zones:ro
+      - ./auth/data:/var/lib/knot
+
+networks:
+  polaris:
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: fd23:1337:6769:2::/64

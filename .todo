@@ -44,6 +44,13 @@
   ACME DNS-01 / wildcard certs later. Software undecided: PowerDNS (Route-53-
   style, API-first, auth+recursor split — AWS structures Route 53 the same way),
   BIND9 (all-in-one), or Knot (modern, split).
+- Once the API DNS (above) exists, switch harmony's ACME from TLS-ALPN-01 to
+  DNS-01 and delete the per-domain `genesis` network aliases on the harmony
+  container. Those aliases are a workaround: TLS-ALPN-01/HTTP-01 require atlas to
+  connect to the service domain to validate, which hairpins because atlas and
+  harmony are both containers — so each routed domain is aliased onto genesis to
+  make that hop container-to-container. DNS-01 (TXT record, no inbound
+  connection) removes the hop and the aliases entirely.
 - Ship vanguard logs to hubble via remote syslog (Grafana + Loki + Alloy) and
   add the management -> services syslog firewall rule
 - Consider restricting the forward ICMPv6 rule to specific types (currently
@@ -52,3 +59,10 @@
   `insecure = true` from terraform/providers.tf once atlas exists
 - Scope the Terraform Proxmox token to a dedicated terraform@pve user with a
   minimal custom role (privsep 1 + ACLs) instead of the root@pam privsep-0 token
+- Migrate unity from the standalone UniFi Network Application (the Docker image)
+  to UniFi OS Server: Ubiquiti is deprecating the standalone app ("won't support
+  upcoming Network versions"). UniFi OS Server is a full OS appliance, not a
+  container — so it becomes a dedicated Terraform-provisioned VM, not an Ansible
+  Docker role, and is more Ubiquiti-account/cloud-coupled. Do it when committing
+  to the UniFi switch/AP buildout or when the standalone app stops getting
+  updates; until then the Docker app works and fits the repo.

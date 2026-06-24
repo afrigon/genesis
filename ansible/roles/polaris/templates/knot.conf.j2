@@ -1,0 +1,30 @@
+server:
+  listen: [ 0.0.0.0@53, ::@53 ]
+
+key:
+  - id: acme.x.
+    algorithm: hmac-sha256
+    secret: {{ lookup('env', 'POLARIS_TSIG_SECRET') }}
+
+acl:
+  - id: acme_update
+    key: acme.x.
+    action: update
+
+template:
+  - id: default
+    storage: /var/lib/knot
+    # static zonefile that also receives DDNS (ACME TXT): keep the journal as the
+    # source of truth, never flush it back over the Ansible-rendered file.
+    zonefile-load: difference-no-serial
+    journal-content: all
+    zonefile-sync: -1
+
+zone:
+{% for zone in dns_zones %}
+  - domain: {{ zone }}.
+    file: /etc/knot/zones/{{ zone }}.zone
+{% if zone == 'x' %}
+    acl: acme_update
+{% endif %}
+{% endfor %}

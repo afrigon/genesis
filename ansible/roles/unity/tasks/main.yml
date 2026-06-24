@@ -15,8 +15,9 @@
 - name: Deploy Mongo init script
   ansible.builtin.copy:
     src: init-mongo.sh
+    # mongo runs initdb scripts as uid 999, so it must be world-readable/exec
     dest: "{{ services_root }}/unity/init-mongo.sh"
-    mode: "0750"
+    mode: "0755"
 
 - name: Render environment file (secrets from 1Password)
   ansible.builtin.template:

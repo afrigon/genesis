@@ -16,6 +16,3 @@ set interfaces ethernet {{ lan_interface }} description 'LAN trunk'
 set interfaces ethernet {{ lan_interface }} vif {{ id }} description '{{ name }}'
 set interfaces ethernet {{ lan_interface }} vif {{ id }} address '{{ ula_prefix }}:{{ id }}::1/64'
 {% endfor %}
-
-set interfaces ethernet {{ config_interface }} description 'CONFIG (recovery access)'
-set interfaces ethernet {{ config_interface }} address '{{ ula_prefix }}::1/64'

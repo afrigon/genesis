@@ -1,12 +1,24 @@
 ---
-dns_records:
-  - { name: vanguard.x, address: 'fd22:1337:6769:10::1' }
-  - { name: sol.x, address: 'fd22:1337:6769:10::2' }
-  - { name: core.sol.x, address: 'fd22:1337:6769:30::3' }
-  - { name: services.sol.x, address: 'fd22:1337:6769:30::4' }
-  - { name: polaris.x, address: 'fd22:1337:6769:30::3' }
-  - { name: atlas.x, address: 'fd22:1337:6769:30::3' }
-  - { name: ca.x, address: 'fd22:1337:6769:30::3' }
-  - { name: unity.x, address: 'fd22:1337:6769:30::3' }
-  # UniFi devices hardcode discovery to the bare name `unifi`
-  - { name: unifi, address: 'fd22:1337:6769:30::4' }
+# Authoritative zones served by polaris-auth (knot-dns). Record names are
+# relative to their zone; `@` is the apex. ACME TXT records land in the `x`
+# zone dynamically via DDNS, so they're not listed here.
+dns_zones:
+  x:
+    # - { name: '@',        address: '...' }   # http(s)://x landing page, later
+    - { name: vanguard,     address: 'fd22:1337:6769:10::1' }
+    - { name: sol,          address: 'fd22:1337:6769:10::2' }
+    - { name: nexus,        address: 'fd22:1337:6769:10::3' }
+    - { name: core.sol,     address: 'fd22:1337:6769:30::3' }
+    - { name: services.sol, address: 'fd22:1337:6769:30::4' }
+    - { name: polaris,      address: 'fd22:1337:6769:30::3' }
+    - { name: atlas,        address: 'fd22:1337:6769:30::3' }
+    - { name: ca,           address: 'fd22:1337:6769:30::3' }
+    - { name: unity,        address: 'fd22:1337:6769:30::3' }
+    - { name: pioneer,      address: 'fd22:1337:6769:40::100' }
+  unifi:
+    - { name: '@',          address: 'fd22:1337:6769:30::4' }   # http://unifi
+
+# Static addresses of the two Knot containers on the `polaris` docker bridge
+# (must match the ipv6_address assignments in compose.yaml).
+polaris_resolver_address: 'fd23:1337:6769:2::a'
+polaris_auth_address: 'fd23:1337:6769:2::b'

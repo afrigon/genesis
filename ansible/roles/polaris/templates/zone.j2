@@ -1,0 +1,13 @@
+$ORIGIN {{ zone }}.
+$TTL 300
+@   IN SOA ns hostmaster (
+        {{ zone_serial | default(ansible_date_time.epoch) }} ; serial
+        3600    ; refresh
+        600     ; retry
+        86400   ; expire
+        300 )   ; minimum
+@   IN NS ns
+ns  IN AAAA {{ polaris_address }}
+{% for r in dns_zones[zone] %}
+{{ "%-18s"|format(r.name) }} IN AAAA {{ r.address }}
+{% endfor %}

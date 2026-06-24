@@ -10,10 +10,14 @@ services:
       - PGID=1000
       - TZ=${TZ}
       - MONGO_HOST=unity-mongo
+      - MONGO_PORT=27017
       - MONGO_DBNAME=unifi
       - MONGO_USER=unifi
       - MONGO_PASS=${UNITY_MONGO_PASSWORD}
       - MONGO_AUTHSOURCE=admin
+    # the bare `unifi` inform name is single-label; resolving it via DNS stalls 7s, so pin it
+    extra_hosts:
+      - "unifi:fd22:1337:6769:30::4"
     volumes:
       - ./data:/config
     # ports for L3 (DNS) adoption
@@ -21,6 +25,8 @@ services:
       - "8443:8443"      # web admin / API (HTTPS)
       - "8080:8080"      # device inform
       - "3478:3478/udp"  # STUN (device keepalive)
+    networks:
+      - genesis
 
   unity-mongo:
     image: mongo:8.0
@@ -36,3 +42,9 @@ services:
     volumes:
       - ./mongo:/data/db
       - ./init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh:ro
+    networks:
+      - genesis
+
+networks:
+  genesis:
+    external: true

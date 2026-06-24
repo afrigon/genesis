@@ -24,10 +24,6 @@ set firewall ipv6 forward filter rule 100 description 'management reaches everyt
 set firewall ipv6 forward filter rule 100 action 'accept'
 set firewall ipv6 forward filter rule 100 inbound-interface name '{{ lan_interface }}.{{ vlans.management }}'
 
-set firewall ipv6 forward filter rule 110 description 'config port reaches everything'
-set firewall ipv6 forward filter rule 110 action 'accept'
-set firewall ipv6 forward filter rule 110 inbound-interface name '{{ config_interface }}'
-
 set firewall ipv6 forward filter rule 200 description 'trusted to internet'
 set firewall ipv6 forward filter rule 200 action 'accept'
 set firewall ipv6 forward filter rule 200 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
@@ -38,7 +34,7 @@ set firewall ipv6 forward filter rule 210 action 'accept'
 set firewall ipv6 forward filter rule 210 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
 set firewall ipv6 forward filter rule 210 outbound-interface name '{{ lan_interface }}.{{ vlans.services }}'
 set firewall ipv6 forward filter rule 210 protocol 'tcp'
-set firewall ipv6 forward filter rule 210 destination port '443'
+set firewall ipv6 forward filter rule 210 destination port '80,443'
 
 set firewall ipv6 forward filter rule 215 description 'DNS from trusted to polaris'
 set firewall ipv6 forward filter rule 215 action 'accept'
@@ -110,12 +106,6 @@ set firewall ipv6 input filter rule 20 action 'accept'
 set firewall ipv6 input filter rule 20 inbound-interface name '{{ lan_interface }}.{{ vlans.management }}'
 set firewall ipv6 input filter rule 20 protocol 'tcp'
 set firewall ipv6 input filter rule 20 destination port '22'
-
-set firewall ipv6 input filter rule 21 description 'SSH from config port'
-set firewall ipv6 input filter rule 21 action 'accept'
-set firewall ipv6 input filter rule 21 inbound-interface name '{{ config_interface }}'
-set firewall ipv6 input filter rule 21 protocol 'tcp'
-set firewall ipv6 input filter rule 21 destination port '22'
 
 set firewall ipv6 input filter rule 22 description 'SSH from trusted'
 set firewall ipv6 input filter rule 22 action 'accept'

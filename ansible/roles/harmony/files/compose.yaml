@@ -7,7 +7,13 @@ services:
       - "80:80"
       - "443:443"
     networks:
-      - genesis
+      genesis:
+        # ACME challenge: atlas (on genesis) must reach harmony AT the cert's
+        # domain name. Aliasing the domains here keeps that hop container-to-
+        # container instead of hairpinning out to the host's published port.
+        aliases:
+          - polaris.x
+          - unity.x
     environment:
       # Trust the atlas root so ACME (lego) accepts atlas's TLS over :9000
       - LEGO_CA_CERTIFICATES=/certs/root_ca.crt
