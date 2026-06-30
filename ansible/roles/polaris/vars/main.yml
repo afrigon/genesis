@@ -20,5 +20,5 @@ dns_zones:
 
 # Static addresses of the two Knot containers on the `polaris` docker bridge
 # (must match the ipv6_address assignments in compose.yaml).
-polaris_resolver_address: 'fd23:1337:6769:2::a'
-polaris_auth_address: 'fd23:1337:6769:2::b'
+polaris_resolver_address: 'fd23:1337:6769:2::2'
+polaris_auth_address: 'fd23:1337:6769:2::3'

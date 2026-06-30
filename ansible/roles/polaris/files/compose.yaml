@@ -18,7 +18,7 @@ services:
       polaris:
         # static so polaris-filter (on the host) can reach it over the bridge
         # IPv6 directly — no published port (must match polaris_resolver_address)
-        ipv6_address: fd23:1337:6769:2::a
+        ipv6_address: fd23:1337:6769:2::2
     volumes:
       - ./resolver:/etc/knot-resolver
 
@@ -30,7 +30,7 @@ services:
       polaris:
         # static so polaris-resolver can forward the local zones to it
         # (must match polaris_auth_address in the role vars)
-        ipv6_address: fd23:1337:6769:2::b
+        ipv6_address: fd23:1337:6769:2::3
     # harmony reaches it on the LAN for ACME DDNS
     ports:
       - "5354:53/udp"

@@ -40,6 +40,9 @@ core promise: rebuildable from the repo.
 - **Client → service:** `client → edge:443 (harmony TLS → janus auth) → backend`
   (services app / Proxmox:8006 / unity:443). Only the edge is client-reachable;
   DNS is the one direct exception.
+- **Homepage:** `https://x` (the bare apex) is the homepage — a landing page on
+  the edge linking to the services. This requires a cert for the bare `x` label,
+  which the current atlas name constraint doesn't cover (see Gotchas).
 - **DNS:** `client → core:53 (polaris-filter) → resolver → ┬ .x/unifi → polaris-auth
   └ public → Cloudflare/Google (+DNS64)`.
 - **Certs (DNS-01):** harmony/lego writes `_acme-challenge` TXT to `core:5354`
@@ -87,7 +90,7 @@ core promise: rebuildable from the repo.
    `x` because it's not under `.x`).
 5. **resolver + auth are bridged** (least-privilege, per the "host-net only when
    genuinely needed" rule), filter is host-net (needs real client source IPs).
-   Internal hop is all-IPv6: resolver `fd23:1337:6769:2::a`, auth `…::b` on a
+   Internal hop is all-IPv6: resolver `fd23:1337:6769:2::2`, auth `…::3` on a
    `polaris` docker bridge.
 6. **atlas lives with polaris on `core`** — foundational infra together; the CA
    key is encrypted + name-constrained, which carries the co-location risk. NOT
@@ -200,8 +203,9 @@ cross-track join (guest can't go IPv6-only until IPv4 lives on `dualstack`).
   + `zonefile-sync: -1` for the static-zonefile-plus-DDNS interaction (ACME TXTs
   are ephemeral; never flush the journal back over the rendered file).
 - **atlas name constraint is `.x`** (leading dot) — covers `*.x` but likely not
-  the bare `x` label, so `https://x` won't get a cert (`http://x` via the apex is
-  fine). Revisit the constraint if a landing page at `x` is wanted.
+  the bare `x` label, so `https://x` won't get a cert as-is. Since `https://x` is
+  the homepage, the constraint **must** be widened to also permit the bare `x`
+  label (add `x` alongside `.x`) so the apex landing page gets a valid cert.
 - **Knot images** pinned `cznic/knot-resolver:v6.4.0`, `cznic/knot:v3.5.5` — look
   up the actual latest when applying (versions move).
 - **UniFi is IPv4-first for adoption** — the entire eth3 saga. Don't fight it on

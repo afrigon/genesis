@@ -167,6 +167,17 @@ name rationale — lives in `services.md`. New services are added there first.
   outside the routed `fd22:1337:6769::/48`. Every container sets `container_name`
   matching its compose service, so it has a stable name for `docker logs`/`exec`
   instead of Compose's `<project>-<service>-<N>`.
+- **Service definition hygiene.** Beyond `container_name` (above), every Compose
+  service declares a `hostname` (the bare name, matching `container_name` — e.g.
+  `gaia`, `polaris-resolver`; never the `.x` domain, which resolves to harmony,
+  not the backend, and is a routing name owned by the proxy), a `TZ` env, and an
+  explicit `restart: unless-stopped`. Set `PUID`/`PGID` **only** on LinuxServer.io images
+  — those alone read them (to drop privileges and own bind-mounts); official
+  images ignore them, so use `user:` instead when a non-root run is needed. Do
+  **not** add Traefik (or other) routing labels to backends: harmony runs on a
+  different Docker host than the apps and can't see their labels, so all routing
+  lives in harmony's Traefik file provider (see "Reverse proxy only"), never in
+  per-container labels.
 - **bootstrap.md** — the manual steps required on a fresh device (network +
   SSH access) before Terraform/Ansible can manage it. Keep it minimal and up
   to date: it is the disaster-recovery entry point.

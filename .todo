@@ -59,6 +59,9 @@
   `insecure = true` from terraform/providers.tf once atlas exists
 - Scope the Terraform Proxmox token to a dedicated terraform@pve user with a
   minimal custom role (privsep 1 + ACLs) instead of the root@pam privsep-0 token
+- Docker Compose service hygiene: audit every existing role so each service
+  meets the "Service definition hygiene" requirement in CLAUDE.md.
+
 - Migrate unity from the standalone UniFi Network Application (the Docker image)
   to UniFi OS Server: Ubiquiti is deprecating the standalone app ("won't support
   upcoming Network versions"). UniFi OS Server is a full OS appliance, not a
