@@ -15,8 +15,8 @@ dns_resolvers:
   - 2001:4860:4860::6464
   - 2001:4860:4860::64
 
-# polaris - internal resolver, the dns VM on the services VLAN
-polaris_address: "{{ ula_prefix }}:30::2"
+# polaris - internal resolver, on the core VM (services VLAN)
+polaris_address: "{{ ula_prefix }}:30::3"
 
 # Canonical internal CA root, distributed into host trust stores by common
 root_ca_cert: "{{ inventory_dir }}/roles/atlas/files/root_ca.crt"

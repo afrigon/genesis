@@ -69,6 +69,13 @@ set firewall ipv6 forward filter rule 240 outbound-interface name '{{ lan_interf
 set firewall ipv6 forward filter rule 240 protocol 'tcp'
 set firewall ipv6 forward filter rule 240 destination port '22'
 
+set firewall ipv6 forward filter rule 250 description 'ssh from trusted to edge'
+set firewall ipv6 forward filter rule 250 action 'accept'
+set firewall ipv6 forward filter rule 250 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
+set firewall ipv6 forward filter rule 250 outbound-interface name '{{ lan_interface }}.{{ vlans.edge }}'
+set firewall ipv6 forward filter rule 250 protocol 'tcp'
+set firewall ipv6 forward filter rule 250 destination port '22'
+
 set firewall ipv6 forward filter rule 300 description 'services to internet'
 set firewall ipv6 forward filter rule 300 action 'accept'
 set firewall ipv6 forward filter rule 300 inbound-interface name '{{ lan_interface }}.{{ vlans.services }}'

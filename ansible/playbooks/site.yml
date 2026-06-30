@@ -1,6 +1,6 @@
 ---
 - import_playbook: vanguard.yml
 - import_playbook: sol.yml
-- import_playbook: dns.yml
 - import_playbook: core.yml
 - import_playbook: services.yml
+- import_playbook: edge.yml

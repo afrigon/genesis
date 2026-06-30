@@ -133,9 +133,10 @@ core promise: rebuildable from the repo.
 - `ansible/.env.op` references `POLARIS_TSIG_SECRET` (op://genesis/Polaris TSIG/secret).
 
 > NOTE: the polaris role was built referencing the `dns` host, but per the
-> clean-canvas decision it deploys to **`core`** — so Phase 1 renames the
-> inventory `dns`→`core` (host_vars + playbook). Do NOT `make apply LIMIT=dns`
-> the old way.
+> clean-canvas decision it deploys to **`core`** — so Phase 1 moved the polaris
+> role onto the `core` playbook and dropped the `dns` Ansible target (host_vars
+> + playbook + inventory). Done. The legacy `dns` VM stays in Terraform until
+> the Phase 6 teardown; do NOT `make apply LIMIT=dns` the old way.
 
 ### Pre-reqs to remember
 - **TSIG secret not generated yet.** Do: `openssl rand -base64 32` → store at
@@ -150,12 +151,16 @@ core promise: rebuildable from the repo.
 ### Phase 0 — VLAN groundwork ✅ done
 `edge`(70) + `untrusted`(60) added to vanguard and applied.
 
-### Phase 1 — Provision the clean canvas *(Terraform + vanguard)*
+### Phase 1 — Provision the clean canvas *(Terraform + vanguard)* — repo done, apply pending
 - vanguard: add `dualstack`(80, dual-stack + DHCPv4 + option 43 controller hint).
-- Terraform: define + provision target Docker-host VMs **core**(30),
-  **services**(30), **edge**(70). Update inventory (`dns`→`core`, add `edge`).
+  ✅ done in a separate session (not yet merged to this branch).
+- Terraform: ✅ **edge**(70) VM defined (`70::2`); **core**(30)/**services**(30)
+  already present. Inventory ✅ `dns`→`core` polaris move + `edge` added; the
+  `edge` playbook is `common`+`docker` only for now (harmony arrives Phase 3).
 - Provision alongside the live VMs (cut over in Phase 6). `unity` OS-Server VM is
   an appliance → Phase 5.
+- **Remaining:** operator runs `terraform apply` to provision `edge`, then
+  `make apply LIMIT=edge` once the gateway permits management→`edge` SSH.
 
 ### Phase 2 — Foundation: DNS + CA → `core`
 - Deploy the built polaris stack **+ atlas + atlas-ca** to `core`.
@@ -190,7 +195,8 @@ core promise: rebuildable from the repo.
 pain, pulling Phase 5's `dualstack` forward fixes it soonest. Phase 6 is the one
 cross-track join (guest can't go IPv6-only until IPv4 lives on `dualstack`).
 
-**Immediate next move: Phase 1** — the Terraform VM/VLAN definitions.
+**Immediate next move: Phase 2** — deploy the polaris stack + atlas to `core`
+(Phase 1's repo work is done; provisioning `edge` is the only apply left on it).
 
 ---
 

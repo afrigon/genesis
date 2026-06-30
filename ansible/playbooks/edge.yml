@@ -1,0 +1,8 @@
+---
+- name: Configure edge VM
+  hosts: edge
+  become: true
+  gather_facts: true
+  roles:
+    - common
+    - docker

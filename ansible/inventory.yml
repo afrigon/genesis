@@ -11,9 +11,9 @@ all:
           ansible_host: fd22:1337:6769:10::2
     vms:
       hosts:
-        dns:
-          ansible_host: fd22:1337:6769:30::2
         core:
           ansible_host: fd22:1337:6769:30::3
         services:
           ansible_host: fd22:1337:6769:30::4
+        edge:
+          ansible_host: fd22:1337:6769:70::2

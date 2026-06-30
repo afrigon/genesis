@@ -52,8 +52,11 @@ variable "vms" {
   }))
 
   default = {
+    # Legacy single-container AdGuard VM. Kept live until the Phase 6 cutover
+    # (clients repointed off it), then removed — polaris now targets core.
     dns      = { cores = 2, memory = 1024, disk_size = 16, vlan = 30, ipv6_address = "fd22:1337:6769:30::2" }
     core     = { cores = 2, memory = 2048, disk_size = 16, vlan = 30, ipv6_address = "fd22:1337:6769:30::3" }
     services = { cores = 4, memory = 6144, disk_size = 64, vlan = 30, ipv6_address = "fd22:1337:6769:30::4" }
+    edge     = { cores = 2, memory = 1024, disk_size = 16, vlan = 70, ipv6_address = "fd22:1337:6769:70::2" }
   }
 }

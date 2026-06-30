@@ -44,7 +44,7 @@ http:
     polaris:
       loadBalancer:
         servers:
-          - url: "http://[fd22:1337:6769:30::2]:3000"
+          - url: "http://[fd22:1337:6769:30::3]:3000"
     unity:
       loadBalancer:
         servers:
