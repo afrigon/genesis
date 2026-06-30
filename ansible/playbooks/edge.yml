@@ -6,3 +6,4 @@
   roles:
     - common
     - docker
+    - { role: harmony, tags: harmony }

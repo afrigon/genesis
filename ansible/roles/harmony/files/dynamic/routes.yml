@@ -40,7 +40,7 @@ http:
     ca:
       loadBalancer:
         servers:
-          - url: "http://atlas-ca:9001"
+          - url: "http://[fd22:1337:6769:30::3]:9001"
     polaris:
       loadBalancer:
         servers:

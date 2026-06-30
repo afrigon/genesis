@@ -64,8 +64,9 @@ The gateway (vanguard) is always at `{prefix}::1` on every VLAN.
 | 30   | services   | `fd22:1337:6769:30::/64`  | Self-hosted services (VMs/containers on sol) |
 | 40   | iot        | `fd22:1337:6769:40::/64`  | IoT devices — Wi-Fi `x-iot` (hidden) |
 | 50   | guest      | `fd22:1337:6769:50::/64`  | Guests — Wi-Fi `x-guest` |
-
-More VLANs will be added for untrusted services as needed.
+| 60   | untrusted  | `fd22:1337:6769:60::/64`  | Code-execution / untrusted backends |
+| 70   | edge       | `fd22:1337:6769:70::/64`  | Edge / single client entry point (harmony) |
+| 80   | dualstack  | `fd22:1337:6769:80::/64`  | The only IPv4 VLAN — UniFi gear + operator IPv4 needs |
 
 ### Addressing
 
@@ -91,14 +92,13 @@ More VLANs will be added for untrusted services as needed.
 - **IPv4 reachability:** NAT64 on vanguard translates `64:ff9b::/96`; polaris's
   DNS64 supplies the synthesized records. The WAN's DHCPv4 address is the
   network's only IPv4 presence.
-- **Temporary exception — guest VLAN is dual-stack:** Windows has no stable
-  CLAT yet, so IPv4-only needs (games, an IPv4-only work VPN) require native
-  IPv4. The guest VLAN (50) carries it — hop onto `x-guest` when you need IPv4 —
-  so trusted stays pure IPv6 (a real IPv6-only testbed). VLAN 50 gets DHCPv4
-  (`10.0.50.0/24`) + NAT44, internet-only, in
-  `roles/gateway/templates/ipv4-guest.j2` and the `guest_ipv4` var.
-  Remove when Windows CLAT reaches stable (PREF64 is already advertised, so
-  clients switch over automatically).
+- **IPv4 is quarantined to the dualstack VLAN (80).** UniFi gear is IPv4-first
+  for adoption and some applications still require native IPv4, so a single VLAN
+  carries it and every other VLAN stays pure IPv6 — hop onto dualstack when you
+  need IPv4. It gets DHCPv4 (`10.0.80.0/24`) + NAT44, internet-only (intra-VLAN
+  L2 is how UniFi devices reach the controller; cross-VLAN traffic to unity is
+  IPv6), all in `roles/gateway/templates/dualstack.j2` and the `dualstack_ipv4`
+  var. Other VLANs reach IPv4-only hosts via NAT64 instead.
 - **Untagged LAN traffic is intentionally dead:** bare eth2 has no prefix and
   the firewall logs and drops anything arriving on it. Do not "fix" this —
   every device must be on a tagged VLAN.
@@ -145,14 +145,20 @@ name rationale — lives in `services.md`. New services are added there first.
   references and injects them as environment variables for that process only.
   Terraform consumes them via `TF_VAR_*` and the provider's env vars; Ansible
   reads them the same way (`lookup('env', ...)`). The real values exist only
-  in 1Password.
+  in 1Password. **Into containers**, compose files stay static (never `.j2`) and
+  hold no secret literals; Ansible renders each service's secrets into a
+  dedicated host file (`0600`, `no_log`, registered so a change recreates the
+  container), and the container receives them by the least-exposing path its
+  software supports: a mounted file (step-ca's key), an inline rendered config
+  file where the app has no alternative (knot.conf's TSIG key), or a `0600`
+  `.env` interpolated by compose (`${VAR}`) for env-only apps (lego, mongo).
 - **Services — Docker Compose on the VMs.** Each service is an Ansible role,
   deployed as a Compose project in its own dir under `/opt` (`services_root`).
   The role ships a hand-written, static `files/compose.yaml` (templated only
   when it needs injected/secret values) and brings it up inline with
   `community.docker.docker_compose_v2` — no shared deploy role. Config is
   declarative: rendered every run, container recreated on change. Per-host
-  playbooks (`dns.yml`, `core.yml`, `services.yml`) list `common`, `docker`,
+  playbooks (`core.yml`, `services.yml`, `edge.yml`) list `common`, `docker`,
   then the host's service roles, each tagged with its name for
   `make apply LIMIT=<host> TAGS=<service>`.
 - **Container networking — bridge by default, host by exception.** Services run

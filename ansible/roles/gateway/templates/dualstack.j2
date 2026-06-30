@@ -1,0 +1,32 @@
+set interfaces ethernet {{ lan_interface }} vif {{ vlans.dualstack }} address '{{ dualstack_ipv4.gateway }}/24'
+
+set service dhcp-server shared-network-name dualstack subnet {{ dualstack_ipv4.subnet }} subnet-id '{{ vlans.dualstack }}'
+set service dhcp-server shared-network-name dualstack subnet {{ dualstack_ipv4.subnet }} option default-router '{{ dualstack_ipv4.gateway }}'
+set service dhcp-server shared-network-name dualstack subnet {{ dualstack_ipv4.subnet }} range 0 start '{{ dualstack_ipv4.dhcp_range_start }}'
+set service dhcp-server shared-network-name dualstack subnet {{ dualstack_ipv4.subnet }} range 0 stop '{{ dualstack_ipv4.dhcp_range_stop }}'
+
+set nat source rule 1100 description 'dualstack IPv4 to internet'
+set nat source rule 1100 outbound-interface name '{{ wan_interface }}'
+set nat source rule 1100 source address '{{ dualstack_ipv4.subnet }}'
+set nat source rule 1100 translation address 'masquerade'
+
+set firewall ipv4 input filter rule 1100 description 'DHCP from dualstack'
+set firewall ipv4 input filter rule 1100 action 'accept'
+set firewall ipv4 input filter rule 1100 inbound-interface name '{{ lan_interface }}.{{ vlans.dualstack }}'
+set firewall ipv4 input filter rule 1100 protocol 'udp'
+set firewall ipv4 input filter rule 1100 destination port '67'
+
+set firewall ipv4 input filter rule 1101 description 'ICMP from dualstack (debugging)'
+set firewall ipv4 input filter rule 1101 action 'accept'
+set firewall ipv4 input filter rule 1101 inbound-interface name '{{ lan_interface }}.{{ vlans.dualstack }}'
+set firewall ipv4 input filter rule 1101 protocol 'icmp'
+
+set firewall ipv4 forward filter rule 1100 description 'dualstack IPv4 to internet'
+set firewall ipv4 forward filter rule 1100 action 'accept'
+set firewall ipv4 forward filter rule 1100 inbound-interface name '{{ lan_interface }}.{{ vlans.dualstack }}'
+set firewall ipv4 forward filter rule 1100 outbound-interface name '{{ wan_interface }}'
+
+set firewall ipv6 forward filter rule 800 description 'dualstack to internet'
+set firewall ipv6 forward filter rule 800 action 'accept'
+set firewall ipv6 forward filter rule 800 inbound-interface name '{{ lan_interface }}.{{ vlans.dualstack }}'
+set firewall ipv6 forward filter rule 800 outbound-interface name '{{ wan_interface }}'

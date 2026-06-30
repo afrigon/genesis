@@ -1,4 +1,10 @@
 ---
+- name: Require the polaris TSIG secret (shared with lego's DNS-01 DDNS)
+  ansible.builtin.assert:
+    that: lookup('env', 'POLARIS_TSIG_SECRET') | length > 0
+    fail_msg: "POLARIS_TSIG_SECRET is empty — run via op run --env-file=ansible/.env.op -- make ..."
+    quiet: true
+
 - name: Create harmony project directories
   ansible.builtin.file:
     path: "{{ services_root }}/harmony/{{ item }}"
@@ -14,6 +20,15 @@
     src: compose.yaml
     dest: "{{ services_root }}/harmony/compose.yaml"
     mode: "0640"
+  register: harmony_compose
+
+- name: Render environment file (secrets from 1Password)
+  ansible.builtin.template:
+    src: harmony.env.j2
+    dest: "{{ services_root }}/harmony/.env"
+    mode: "0600"
+  no_log: true
+  register: harmony_env
 
 - name: Deploy static config
   ansible.builtin.copy:

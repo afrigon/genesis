@@ -10,10 +10,11 @@ dns_zones:
     - { name: nexus,        address: 'fd22:1337:6769:10::3' }
     - { name: core.sol,     address: 'fd22:1337:6769:30::3' }
     - { name: services.sol, address: 'fd22:1337:6769:30::4' }
-    - { name: polaris,      address: 'fd22:1337:6769:30::3' }
-    - { name: atlas,        address: 'fd22:1337:6769:30::3' }
-    - { name: ca,           address: 'fd22:1337:6769:30::3' }
-    - { name: unity,        address: 'fd22:1337:6769:30::3' }
+    - { name: edge.sol,     address: 'fd22:1337:6769:70::2' }
+    # Proxy-fronted service names resolve to harmony on edge, which routes by host.
+    - { name: polaris,      address: 'fd22:1337:6769:70::2' }
+    - { name: ca,           address: 'fd22:1337:6769:70::2' }
+    - { name: unity,        address: 'fd22:1337:6769:70::2' }
     - { name: pioneer,      address: 'fd22:1337:6769:40::100' }
   unifi:
     - { name: '@',          address: 'fd22:1337:6769:30::4' }   # http://unifi

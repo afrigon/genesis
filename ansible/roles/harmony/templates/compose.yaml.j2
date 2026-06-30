@@ -18,7 +18,7 @@ services:
       # _acme-challenge TXT instead of atlas connecting back to harmony.
       - RFC2136_NAMESERVER=[fd22:1337:6769:30::3]:5354
       - RFC2136_TSIG_KEY=acme.x.
-      - RFC2136_TSIG_SECRET=${POLARIS_TSIG_SECRET}
+      - RFC2136_TSIG_SECRET={{ lookup('env', 'POLARIS_TSIG_SECRET') }}
     volumes:
       - ./traefik.yml:/etc/traefik/traefik.yml:ro
       - ./dynamic:/dynamic:ro

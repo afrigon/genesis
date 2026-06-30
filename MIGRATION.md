@@ -53,7 +53,7 @@ core promise: rebuildable from the repo.
 - **UniFi (zero-touch):** `dualstack` runs DHCPv4, so nexus/quasar get a v4
   lease, L2-discover unity on the same VLAN, and adopt with no manual config.
   `client → unity.x → edge → unity:443` for the UI; `gaia(30) → unity:443` API is
-  the one sanctioned east-west exception.
+  the one sanctioned cross-VLAN exception.
 
 ---
 
@@ -101,9 +101,9 @@ core promise: rebuildable from the repo.
    proxy's cross-tier egress one-directional instead of punching services→mgmt.
 8. **management = hosts only** (vanguard, sol). No service VMs.
 9. **`dualstack` (80) is the ONLY IPv4 VLAN.** UniFi gear is IPv4-first for
-   adoption, and the operator has IPv4-only needs (games, IPv4-only VPNs); both
-   go here. DHCPv4 here is what makes UniFi adoption zero-touch. guest
-   reverts to IPv6-only.
+   adoption, and some applications still require native IPv4; both go here.
+   DHCPv4 here is what makes UniFi adoption zero-touch. guest reverts to
+   IPv6-only.
 10. **unity → UniFi OS Server** on a dedicated VM (Ubiquiti is deprecating the
     standalone Docker Network Application).
 11. **Clean-canvas approach** (provision target first, deploy into final homes)
@@ -152,24 +152,48 @@ core promise: rebuildable from the repo.
 `edge`(70) + `untrusted`(60) added to vanguard and applied.
 
 ### Phase 1 — Provision the clean canvas *(Terraform + vanguard)* — repo done, apply pending
-- vanguard: add `dualstack`(80, dual-stack + DHCPv4 + option 43 controller hint).
-  ✅ done in a separate session (not yet merged to this branch).
+- vanguard: ✅ `dualstack`(80) added — dual-stack + DHCPv4 (`10.0.80.0/24`) +
+  NAT44, internet-only, in `roles/gateway/templates/dualstack.j2` + the
+  `dualstack_ipv4` var. (Adoption is L2 on the shared subnet, so no option 43 is
+  needed while unity is co-located; add it in Phase 5 only if the controller ever
+  moves off-subnet.) guest reverted to IPv6-only at the same time — the IPv4 role
+  moved to dualstack (this pulls the guest half of Phase 6 forward).
 - Terraform: ✅ **edge**(70) VM defined (`70::2`); **core**(30)/**services**(30)
   already present. Inventory ✅ `dns`→`core` polaris move + `edge` added; the
   `edge` playbook is `common`+`docker` only for now (harmony arrives Phase 3).
 - Provision alongside the live VMs (cut over in Phase 6). `unity` OS-Server VM is
   an appliance → Phase 5.
-- **Remaining:** operator runs `terraform apply` to provision `edge`, then
-  `make apply LIMIT=edge` once the gateway permits management→`edge` SSH.
+- **Remaining (apply):** `terraform apply` to provision `edge`; `make apply
+  LIMIT=vanguard` for the VLAN/firewall changes; `make apply LIMIT=edge` once the
+  gateway permits management→`edge` SSH. Ansible only merges `set` lines, so run
+  these manual deletes on vanguard to retire the old guest IPv4:
+  ```
+  delete interfaces ethernet eth2 vif 50 address 10.0.50.1/24
+  delete service dhcp-server shared-network-name guest
+  delete nat source rule 1000
+  delete firewall ipv4 input filter rule 1000
+  delete firewall ipv4 input filter rule 1001
+  delete firewall ipv4 forward filter rule 1000
+  ```
 
 ### Phase 2 — Foundation: DNS + CA → `core`
 - Deploy the built polaris stack **+ atlas + atlas-ca** to `core`.
 - Generate/confirm TSIG; verify layered `dig`s + the CA. Keystone — DNS live.
 
-### Phase 3 — Edge: harmony (native DNS-01) → `edge`
-- Deploy harmony to `edge` with lego `rfc2136 → core:5354` from the start — no
-  genesis aliases ever created.
-- Repoint `{service}.x` → edge; firewall: `clients→edge`, `edge→services`, etc.
+### Phase 3 — Edge: harmony (native DNS-01) → `edge` — repo done, apply pending
+- harmony role reworked for DNS-01: traefik `dnsChallenge` (rfc2136 →
+  `core:5354`, TSIG `acme.x.`), `caServer` → `https://core.sol.x:9000` (atlas's
+  `ca.json` dnsNames updated to match; reached via `extra_hosts` static IP), the
+  genesis network + aliases dropped. TSIG secret via a `0600` `.env` (op).
+- harmony moved `core.yml` → `edge.yml`; atlas now publishes `:9000`/`:9001` so
+  edge can reach it; the `ca` route targets `core:9001`.
+- Zone repoint done: `polaris`/`ca`/`unity` `.x` → `70::2`, `edge.sol` added,
+  retired `atlas.x`.
+- Firewall: rule 210 repointed `trusted → edge:80,443`; added `edge → internet`
+  (700) and `edge → services` (710). No manual `delete` needed (210 is a `set`).
+- **Remaining:** operator applies vanguard + `core` + `edge`. Verify on apply:
+  traefik `propagation.disableANSChecks` field name (v3.7.5), lego TSIG
+  handshake against knot, and that `polaris-auth` reads `knot.conf` at `0600`.
 
 ### Phase 4 — Apps → `services`
 - Deploy app backends (hubble, future) to `services`, behind the edge.
@@ -182,21 +206,22 @@ core promise: rebuildable from the repo.
 ### Phase 6 — Cutover & decommission
 - Point clients (RDNSS) at the new `core` DNS; verify end-to-end.
 - Tear down old VMs (`dns`, old `core`, Docker-unity on `services`).
-- Consolidate IPv4 onto `dualstack`; revert guest → IPv6-only (remove `guest_ipv4`
-  + the manual vanguard `delete`s per `.todo`).
+- IPv4 already consolidated onto `dualstack` and guest reverted to IPv6-only in
+  Phase 1; just confirm nothing else still depends on native IPv4.
 
 ### Phase 7 — Buildout
 - janus un-parked → `edge` (forward-auth in front of services).
-- gaia/Home Assistant on `services` + east-west rules (`services→iot`, MQTT,
+- gaia/Home Assistant on `services` + cross-VLAN rules (`services→iot`, MQTT,
   mDNS reflector); populate `untrusted` (internet-only); monitoring.
 
 **Critical path:** `1 → 2 → 3` (spine). Phase 5 (UniFi) runs in parallel once
 `dualstack` exists from Phase 1 — and since the eth3 adoption is the current
-pain, pulling Phase 5's `dualstack` forward fixes it soonest. Phase 6 is the one
-cross-track join (guest can't go IPv6-only until IPv4 lives on `dualstack`).
+pain, pulling Phase 5's `dualstack` forward fixes it soonest. (guest's revert to
+IPv6-only already rode along with `dualstack` in Phase 1.)
 
-**Immediate next move: Phase 2** — deploy the polaris stack + atlas to `core`
-(Phase 1's repo work is done; provisioning `edge` is the only apply left on it).
+**Immediate next move: apply.** Phases 1–3 repo work is done; the spine is now
+apply-gated (operator, when home): provision via Terraform, then `make apply`
+vanguard → `core` (Phase 2: polaris + atlas) → `edge` (Phase 3: harmony).
 
 ---
 

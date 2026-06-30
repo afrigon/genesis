@@ -29,10 +29,10 @@ set firewall ipv6 forward filter rule 200 action 'accept'
 set firewall ipv6 forward filter rule 200 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
 set firewall ipv6 forward filter rule 200 outbound-interface name '{{ wan_interface }}'
 
-set firewall ipv6 forward filter rule 210 description 'trusted to services through the reverse proxy only'
+set firewall ipv6 forward filter rule 210 description 'trusted to edge (reverse proxy) only'
 set firewall ipv6 forward filter rule 210 action 'accept'
 set firewall ipv6 forward filter rule 210 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
-set firewall ipv6 forward filter rule 210 outbound-interface name '{{ lan_interface }}.{{ vlans.services }}'
+set firewall ipv6 forward filter rule 210 outbound-interface name '{{ lan_interface }}.{{ vlans.edge }}'
 set firewall ipv6 forward filter rule 210 protocol 'tcp'
 set firewall ipv6 forward filter rule 210 destination port '80,443'
 
@@ -95,6 +95,16 @@ set firewall ipv6 forward filter rule 500 description 'guest to internet'
 set firewall ipv6 forward filter rule 500 action 'accept'
 set firewall ipv6 forward filter rule 500 inbound-interface name '{{ lan_interface }}.{{ vlans.guest }}'
 set firewall ipv6 forward filter rule 500 outbound-interface name '{{ wan_interface }}'
+
+set firewall ipv6 forward filter rule 700 description 'edge to internet'
+set firewall ipv6 forward filter rule 700 action 'accept'
+set firewall ipv6 forward filter rule 700 inbound-interface name '{{ lan_interface }}.{{ vlans.edge }}'
+set firewall ipv6 forward filter rule 700 outbound-interface name '{{ wan_interface }}'
+
+set firewall ipv6 forward filter rule 710 description 'edge (reverse proxy) to services backends and DNS-01'
+set firewall ipv6 forward filter rule 710 action 'accept'
+set firewall ipv6 forward filter rule 710 inbound-interface name '{{ lan_interface }}.{{ vlans.edge }}'
+set firewall ipv6 forward filter rule 710 outbound-interface name '{{ lan_interface }}.{{ vlans.services }}'
 
 set firewall ipv6 input filter default-action 'drop'
 set firewall ipv6 input filter default-log

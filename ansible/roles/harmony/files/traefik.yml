@@ -12,11 +12,19 @@ providers:
 certificatesResolvers:
   atlas:
     acme:
-      caServer: https://atlas.x:9000/acme/acme/directory
+      # atlas lives on core, harmony on edge — reached by the VM's own name
+      # (pinned to a static IP via extra_hosts) so this never routes through the
+      # proxy (atlas.x would hairpin) and lego's TLS matches atlas's cert SAN.
+      caServer: https://core.sol.x:9000/acme/acme/directory
       email: admin@x
       storage: /acme/acme.json
       keyType: EC256
-      tlsChallenge: {}
+      dnsChallenge:
+        provider: rfc2136
+        # polaris-auth is internal-only; lego's propagation pre-check queries
+        # public resolvers and would never see the TXT, so skip it.
+        propagation:
+          disableANSChecks: true
 
 log:
   level: INFO

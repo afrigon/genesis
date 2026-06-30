@@ -41,7 +41,8 @@
   ansible.builtin.template:
     src: knot.conf.j2
     dest: "{{ services_root }}/polaris/auth/knot.conf"
-    mode: "0640"
+    # 0600: carries the inline TSIG key
+    mode: "0600"
   no_log: true
   register: polaris_auth_config
 
