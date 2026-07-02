@@ -14,7 +14,11 @@ resource "proxmox_virtual_environment_file" "network_config" {
           dhcp4: false
           accept-ra: true
           addresses:
-            - ${var.ipv6_address}/64
+            - ${var.ipv6_address}/64%{ if var.ipv4 != null }
+            - ${var.ipv4.address}
+          routes:
+            - to: default
+              via: ${var.ipv4.gateway}%{ endif }
     EOT
   }
 }

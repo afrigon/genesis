@@ -49,14 +49,26 @@ variable "vms" {
     disk_size    = number # GB
     vlan         = number
     ipv6_address = string
+    ipv4 = optional(object({
+      address = string
+      gateway = string
+    }))
   }))
 
   default = {
-    # Legacy single-container AdGuard VM. Kept live until the Phase 6 cutover
-    # (clients repointed off it), then removed — polaris now targets core.
-    dns      = { cores = 2, memory = 1024, disk_size = 16, vlan = 30, ipv6_address = "fd22:1337:6769:30::2" }
     core     = { cores = 2, memory = 2048, disk_size = 16, vlan = 30, ipv6_address = "fd22:1337:6769:30::3" }
     services = { cores = 4, memory = 6144, disk_size = 64, vlan = 30, ipv6_address = "fd22:1337:6769:30::4" }
     edge     = { cores = 2, memory = 1024, disk_size = 16, vlan = 70, ipv6_address = "fd22:1337:6769:70::2" }
+
+    # native IPv4 (static, from the reserved .2-.99 block): UniFi is IPv4-first
+    # for device adoption — the reason the dualstack VLAN exists
+    unity = {
+      cores        = 4
+      memory       = 4096
+      disk_size    = 50
+      vlan         = 80
+      ipv6_address = "fd22:1337:6769:80::2"
+      ipv4         = { address = "10.0.80.2/24", gateway = "10.0.80.1" }
+    }
   }
 }

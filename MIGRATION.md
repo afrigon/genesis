@@ -7,10 +7,11 @@ from atlas), **management** reduced to just the physical hosts, and a single
 **dualstack** VLAN that quarantines all IPv4 (UniFi gear + the operator's
 IPv4-only needs) so every other tier stays pure IPv6.
 
-The method is a **clean canvas**: provision the target VMs/VLANs first, deploy
-each service straight into its final home (alongside the live setup, then cut
-over) — rather than morphing live VMs in place. This also exercises genesis's
-core promise: rebuildable from the repo.
+The method is a **full teardown & rebuild**: finish the repo work first, then
+destroy every VM and rebuild the whole environment from the repo — no in-place
+morphing, no cutover period, no leftover state carried over. Downtime is free
+(no one uses the services yet), and the rebuild exercises genesis's core
+promise end to end: rebuildable from the repo.
 
 ---
 
@@ -32,9 +33,9 @@ core promise: rebuildable from the repo.
 | VM | VLAN | Runs |
 |----|------|------|
 | `core` | 30 | polaris (filter/resolver/auth) **+ atlas + atlas-ca** |
-| `services` | 30 | hubble (monitoring), gaia (Home Assistant), future apps |
+| `services` | 30 | app backends — empty until after the migration (Phase 6) |
 | `edge` | 70 | harmony + janus |
-| `unity` | 80 | UniFi OS Server (appliance, not a Docker host) |
+| `unity` | 80 | UniFi OS Server |
 
 ### Interactions
 - **Client → service:** `client → edge:443 (harmony TLS → janus auth) → backend`
@@ -63,8 +64,8 @@ core promise: rebuildable from the repo.
 | polaris | the DNS service | 3 containers: `polaris-filter` (AdGuard), `polaris-resolver` (Knot Resolver), `polaris-auth` (Knot DNS) |
 | atlas | internal CA (step-ca) | `atlas-ca` = busybox serving the root cert at `ca.x` |
 | harmony | reverse proxy (Traefik) | |
-| janus | auth (forward-auth) | **parked** until the migration's done (Phase 7) |
-| unity | UniFi controller | migrating Docker Network App → **UniFi OS Server** |
+| janus | auth (forward-auth) | **parked** until the migration's done (Phase 6) |
+| unity | UniFi controller | UniFi OS Server on its own VM |
 | nexus | UniFi switch | (was called `lagrange`) |
 | quasar | UniFi AP | the U7-Pro-IW |
 | gaia | Home Assistant | future |
@@ -105,123 +106,167 @@ core promise: rebuildable from the repo.
    DHCPv4 here is what makes UniFi adoption zero-touch. guest reverts to
    IPv6-only.
 10. **unity → UniFi OS Server** on a dedicated VM (Ubiquiti is deprecating the
-    standalone Docker Network Application).
-11. **Clean-canvas approach** (provision target first, deploy into final homes)
-    over in-place morphing.
+    standalone Docker Network Application). Despite the name, OS Server is a
+    regular Linux application (an installer running rootless Podman containers
+    on Debian 12/13+), so unity stays a normal Terraform-provisioned Debian VM
+    with an Ansible role — just not a Docker Compose one. The Docker unity role
+    is retired from the repo (git history keeps it).
+11. **Full teardown & rebuild** (supersedes the earlier "provision alongside,
+    then cut over" clean-canvas plan): once the repo work is complete, destroy
+    all VMs and rebuild from scratch so no leftover state survives. Enabled by
+    zero users (downtime is free) and services built to be restorable.
+12. **Migration completes before anything new is added.** App backends (hubble,
+    gaia, …) come after — the old "Phase 4: apps" is folded into the buildout.
+13. **UniFi controller config is manual at first.** terraform/unifi against the
+    old Docker unity corrupted state and silently failed to apply (cause
+    unknown); the WLANs get codified later (see `.todo`), after OS Server is up.
 
 ---
 
-## Current state (as of 2026-06-24)
+## Current state (as of 2026-07-02)
 
-### Live (the OLD layout still running)
-- **vanguard**: all VLANs incl. `edge`(70) + `untrusted`(60) **applied**. guest
-  still dual-stack (IPv4).
-- **dns VM** (`30::2`): the OLD single-container AdGuard polaris.
-- **core VM** (`30::3`): atlas + atlas-ca + harmony (harmony on TLS-ALPN ACME
-  with genesis aliases; fronting `polaris.x`, `unity.x` route added).
-- **services VM** (`30::4`): unity Docker (Network App + mongo), with the
-  `MONGO_PORT`, `extra_hosts unifi`, and genesis-network fixes applied.
-- **nexus + quasar**: mid-adoption, painfully, over eth3 (IPv6-only → manual
-  per-device IP hacks). This is the symptom that the `dualstack` VLAN fixes.
+### Live (the OLD layout)
+- **vanguard**: carries a stale intermediate config with no repo trace (the
+  applied-state changes were reset). Full live-vs-repo diff done (2026-07-02):
+  RDNSS points at the old dns VM (`30::2`) on six interfaces, dualstack is
+  half-applied under old rule numbers (ipv6 600/610/620, ipv4 1010/1020/1021)
+  **and on `192.168.1.0/24` — the subnet the repo now assigns to the config
+  port**, eth3 is on `192.168.2.0/24`, plus a stale rule 620 (dualstack →
+  unity-on-services) and a bare `dhcpv6-server`. Guest IPv4 is already gone.
+  Decision: **targeted deletes before the apply** (Phase 4 step 1) — the
+  subnet swap makes delete-first mandatory, not optional.
+- **dns VM** (`30::2`): the OLD single-container AdGuard polaris (removed from
+  Terraform in the repo; dies at teardown).
+- **core VM** (`30::3`): old layout — atlas + atlas-ca + harmony (TLS-ALPN ACME
+  with genesis aliases).
+- **services VM** (`30::4`): unity Docker (Network App + mongo).
+- **nexus + quasar**: mid-adoption over eth3 (the pain the `dualstack` VLAN
+  fixes); they get re-adopted fresh in Phase 5.
 
-### Built in the repo, NOT applied
-- **The 3-container polaris rework** (the entire layered DNS stack) — supersedes
-  the live AdGuard-only polaris. Lives in `ansible/roles/polaris/`:
-  `files/compose.yaml`, `templates/{AdGuardHome.yaml.j2,config.yaml.j2,
-  knot.conf.j2,zone.j2}`, `vars/main.yml` (the `dns_zones` map +
-  `polaris_resolver_address`/`polaris_auth_address`), `tasks/main.yml`.
-- `ansible/.env.op` references `POLARIS_TSIG_SECRET` (op://genesis/Polaris TSIG/secret).
-
-> NOTE: the polaris role was built referencing the `dns` host, but per the
-> clean-canvas decision it deploys to **`core`** — so Phase 1 moved the polaris
-> role onto the `core` playbook and dropped the `dns` Ansible target (host_vars
-> + playbook + inventory). Done. The legacy `dns` VM stays in Terraform until
-> the Phase 6 teardown; do NOT `make apply LIMIT=dns` the old way.
-
-### Pre-reqs to remember
-- **TSIG secret not generated yet.** Do: `openssl rand -base64 32` → store at
-  `op://genesis/Polaris TSIG/secret`. (`tsig-keygen` isn't in the cznic/knot
-  image; openssl output is a cryptographically equivalent 256-bit hmac-sha256
-  key.) Needed by both polaris-auth and harmony's lego.
+### Repo (done)
+- Phases 1–3 built: layered polaris, atlas on `core` (dnsNames `core.sol.x`,
+  `:9000`/`:9001` published), harmony on DNS-01 in `edge.yml`, zone repoints to
+  `70::2`, dualstack VLAN + DHCPv4 + NAT44, inventory `core`/`services`/`edge`.
+- Retirements: legacy `dns` VM dropped from Terraform; Docker unity role deleted
+  (`services.yml` is `common`+`docker` only until the buildout).
+- Pre-req ✅ TSIG secret generated and stored at `op://genesis/Polaris TSIG/secret`.
 
 ---
 
 ## Phased plan
 
-### Phase 0 — VLAN groundwork ✅ done
+### Phase 0 — VLAN groundwork ✅ applied
 `edge`(70) + `untrusted`(60) added to vanguard and applied.
 
-### Phase 1 — Provision the clean canvas *(Terraform + vanguard)* — repo done, apply pending
-- vanguard: ✅ `dualstack`(80) added — dual-stack + DHCPv4 (`10.0.80.0/24`) +
-  NAT44, internet-only, in `roles/gateway/templates/dualstack.j2` + the
-  `dualstack_ipv4` var. (Adoption is L2 on the shared subnet, so no option 43 is
-  needed while unity is co-located; add it in Phase 5 only if the controller ever
-  moves off-subnet.) guest reverted to IPv6-only at the same time — the IPv4 role
-  moved to dualstack (this pulls the guest half of Phase 6 forward).
-- Terraform: ✅ **edge**(70) VM defined (`70::2`); **core**(30)/**services**(30)
-  already present. Inventory ✅ `dns`→`core` polaris move + `edge` added; the
-  `edge` playbook is `common`+`docker` only for now (harmony arrives Phase 3).
-- Provision alongside the live VMs (cut over in Phase 6). `unity` OS-Server VM is
-  an appliance → Phase 5.
-- **Remaining (apply):** `terraform apply` to provision `edge`; `make apply
-  LIMIT=vanguard` for the VLAN/firewall changes; `make apply LIMIT=edge` once the
-  gateway permits management→`edge` SSH. Ansible only merges `set` lines, so run
-  these manual deletes on vanguard to retire the old guest IPv4:
-  ```
-  delete interfaces ethernet eth2 vif 50 address 10.0.50.1/24
-  delete service dhcp-server shared-network-name guest
-  delete nat source rule 1000
-  delete firewall ipv4 input filter rule 1000
-  delete firewall ipv4 input filter rule 1001
-  delete firewall ipv4 forward filter rule 1000
-  ```
+### Phase 1 — Gateway + Terraform target ✅ repo done
+dualstack VLAN (DHCPv4 `10.0.80.0/24` + NAT44, internet-only) + guest reverted
+to IPv6-only in the gateway role; `edge` VM in Terraform; inventory/playbooks
+restructured (`dns` target dropped, polaris moved to `core`).
 
-### Phase 2 — Foundation: DNS + CA → `core`
-- Deploy the built polaris stack **+ atlas + atlas-ca** to `core`.
-- Generate/confirm TSIG; verify layered `dig`s + the CA. Keystone — DNS live.
+### Phase 2 — Foundation: DNS + CA on `core` ✅ repo done
+The 3-container polaris stack + atlas + atlas-ca on the `core` playbook.
 
-### Phase 3 — Edge: harmony (native DNS-01) → `edge` — repo done, apply pending
-- harmony role reworked for DNS-01: traefik `dnsChallenge` (rfc2136 →
-  `core:5354`, TSIG `acme.x.`), `caServer` → `https://core.sol.x:9000` (atlas's
-  `ca.json` dnsNames updated to match; reached via `extra_hosts` static IP), the
-  genesis network + aliases dropped. TSIG secret via a `0600` `.env` (op).
-- harmony moved `core.yml` → `edge.yml`; atlas now publishes `:9000`/`:9001` so
-  edge can reach it; the `ca` route targets `core:9001`.
-- Zone repoint done: `polaris`/`ca`/`unity` `.x` → `70::2`, `edge.sol` added,
-  retired `atlas.x`.
-- Firewall: rule 210 repointed `trusted → edge:80,443`; added `edge → internet`
-  (700) and `edge → services` (710). No manual `delete` needed (210 is a `set`).
-- **Remaining:** operator applies vanguard + `core` + `edge`. Verify on apply:
-  traefik `propagation.disableANSChecks` field name (v3.7.5), lego TSIG
-  handshake against knot, and that `polaris-auth` reads `knot.conf` at `0600`.
+### Phase 3 — Edge: harmony on DNS-01 ✅ repo done
+traefik `dnsChallenge` (rfc2136 → `core:5354`, TSIG `acme.x.`), `caServer` →
+`https://core.sol.x:9000` via `extra_hosts` static IP, genesis network/aliases
+gone, TSIG via `0600` `.env`. Firewall 210 → edge, 700 (edge→wan), 710
+(edge→services).
 
-### Phase 4 — Apps → `services`
-- Deploy app backends (hubble, future) to `services`, behind the edge.
+### Phase 4 — The rebuild *(operator runbook — everything applies here)*
+Order matters: gateway first (the new VLANs/rules/RDNSS must exist before the
+VMs), then destroy/provision, then Ansible core → edge → services → unity.
 
-### Phase 5 — UniFi: `dualstack` + OS Server
-- Provision the `unity` VM (UniFi OS Server) on `dualstack`.
-- Move nexus + quasar to `dualstack` → DHCPv4 + L2 discovery → zero-touch adopt.
-- Migrate controller config from the old Docker unity (backup/restore or fresh).
+> After step 1 the workstation has no resolver (RDNSS points at `core` before
+> the new polaris exists) — set a temporary manual resolver (e.g.
+> `2606:4700:4700::1111`) if internet DNS is needed; the rebuild itself never
+> needs DNS (all control-plane addressing is static IP).
 
-### Phase 6 — Cutover & decommission
-- Point clients (RDNSS) at the new `core` DNS; verify end-to-end.
-- Tear down old VMs (`dns`, old `core`, Docker-unity on `services`).
-- IPv4 already consolidated onto `dualstack` and guest reverted to IPv6-only in
-  Phase 1; just confirm nothing else still depends on native IPv4.
+0. **sol:** trunk the new VLANs on the bridge — in `/etc/network/interfaces`,
+   `bridge-vids 10 30 60` → `bridge-vids 10 30 60 70 80`, then `ifreload -a`
+   (matches the updated bootstrap.md). Without this the edge/unity VMs are
+   dead on the wire.
+1. **vanguard — stale-config deletes, then apply.** The deletes come FIRST:
+   the live dualstack owns `192.168.1.0/24`, which the apply wants to give the
+   config port (duplicate subnet/subnet-id → failed commit). One commit, on
+   vanguard (`configure` … `commit` … `save`):
+   ```
+   delete interfaces ethernet eth2 vif 80 address 192.168.1.1/24
+   delete interfaces ethernet eth3 address 192.168.2.1/24
+   delete service dhcp-server
+   delete service dns forwarding
+   delete service dhcpv6-server
+   delete nat source rule 1010
+   delete firewall ipv4 forward filter rule 1010
+   delete firewall ipv4 input filter rule 1020
+   delete firewall ipv4 input filter rule 1021
+   delete firewall ipv6 forward filter rule 600
+   delete firewall ipv6 forward filter rule 610
+   delete firewall ipv6 forward filter rule 620
+   delete service router-advert interface eth2.10 name-server fd22:1337:6769:30::2
+   delete service router-advert interface eth2.20 name-server fd22:1337:6769:30::2
+   delete service router-advert interface eth2.30 name-server fd22:1337:6769:30::2
+   delete service router-advert interface eth2.70 name-server fd22:1337:6769:30::2
+   delete service router-advert interface eth2.80 name-server fd22:1337:6769:30::2
+   delete service router-advert interface eth3 name-server fd22:1337:6769:30::2
+   ```
+   (`delete service dhcp-server` / `dns forwarding` go wholesale — removing
+   just the stale subnets would leave invalid empty nodes, and the apply
+   re-renders both in full. Rule 210 needs no delete: same number, the apply
+   overwrites its fields.) Then, from the workstation:
+   `op run --env-file=ansible/.env.op -- make apply ANSIBLE_LIMIT=vanguard`.
+   Verify: re-run `show configuration commands | no-more` and re-diff against
+   the repo render — zero genesis-owned live-only lines expected.
+2. **Teardown + provision** (destroys dns/core/services, creates fresh
+   core/services/edge/unity) — on the workstation:
+   ```
+   op run --env-file=terraform/proxmox/.env.op -- terraform -chdir=terraform/proxmox destroy
+   op run --env-file=terraform/proxmox/.env.op -- make provision TERRAFORM_DIRECTORY=proxmox
+   ```
+   Fresh VMs have new SSH host keys — clear the old ones
+   (`ssh-keygen -R` each address) before the Ansible runs.
+3. **core:** `… make apply ANSIBLE_LIMIT=core` → polaris + atlas. Verify the
+   layers: `dig @fd22:1337:6769:30::3 unity.x AAAA` (filter→resolver→auth),
+   a public name (recursion + filtering), an IPv4-only name (DNS64), and the
+   ACME dir over TLS (`curl --cacert root_ca.crt https://core.sol.x:9000/acme/acme/directory`
+   with `core.sol.x` pinned to `30::3`).
+4. **edge:** `… make apply ANSIBLE_LIMIT=edge` → harmony. Verify DNS-01
+   issuance in the traefik logs: the `propagation.disableANSChecks` field name
+   (v3.7.5), the lego↔knot TSIG handshake, and that `polaris-auth` reads
+   `knot.conf` at `0600`. Then `https://polaris.x` + `https://ca.x` from a
+   trusted client.
+5. **services:** `… make apply ANSIBLE_LIMIT=services` → base only
+   (`common`+`docker`); app roles come in the buildout.
+6. **End-to-end:** a trusted client resolves via polaris (RDNSS), reaches
+   services only through the edge, and NAT64 works for IPv4-only destinations.
 
-### Phase 7 — Buildout
+### Phase 5 — UniFi: `unity` VM + adoption *(repo work not started)*
+- Terraform: `unity` VM on `dualstack`(80) — needs ULA `80::2` **and** an IPv4
+  story (the vm module currently only does `ipv6_address`; static
+  `10.0.80.2` per the reserved .2–.99 block).
+- Ansible: new unity role — `podman` + `slirp4netns` + the UniFi OS Server
+  installer on Debian 13.
+- Repoints (were left targeting `30::4`): `unifi` zone apex → unity's address
+  (or drop the zone if L2 adoption makes it moot), harmony's `unity` route →
+  the OS Server UI; firewall: allow `edge → dualstack:443` for that route.
+- Move nexus + quasar onto `dualstack` → DHCPv4 + L2 discovery → zero-touch
+  adopt; configure the controller manually (SSIDs — codify in terraform/unifi
+  later, see `.todo`); then run terraform/unifi for the VLAN networks + mgmt
+  settings.
+
+### Phase 6 — Buildout *(after the migration — nothing new before 4–5 are done)*
 - janus un-parked → `edge` (forward-auth in front of services).
-- gaia/Home Assistant on `services` + cross-VLAN rules (`services→iot`, MQTT,
-  mDNS reflector); populate `untrusted` (internet-only); monitoring.
+- App backends → `services`: hubble (monitoring), gaia/Home Assistant +
+  cross-VLAN rules (`services→iot`, MQTT, mDNS reflector, the `gaia → unity`
+  API exception); populate `untrusted` (internet-only).
+- terraform/unifi WLAN codification.
 
-**Critical path:** `1 → 2 → 3` (spine). Phase 5 (UniFi) runs in parallel once
-`dualstack` exists from Phase 1 — and since the eth3 adoption is the current
-pain, pulling Phase 5's `dualstack` forward fixes it soonest. (guest's revert to
-IPv6-only already rode along with `dualstack` in Phase 1.)
+**Critical path:** `4 → 5` — Phase 4 is one sitting (DNS is down mid-way), and
+Phase 5 needs `dualstack` live from Phase 4's vanguard apply plus its own repo
+work first.
 
-**Immediate next move: apply.** Phases 1–3 repo work is done; the spine is now
-apply-gated (operator, when home): provision via Terraform, then `make apply`
-vanguard → `core` (Phase 2: polaris + atlas) → `edge` (Phase 3: harmony).
+**Immediate next move:** Phase 5 repo work (unity VM + role + repoints), so the
+rebuild and the UniFi migration can happen in one pass — or run Phase 4 as soon
+as the operator has a free window; the two are independent.
 
 ---
 
@@ -241,6 +286,8 @@ vanguard → `core` (Phase 2: polaris + atlas) → `edge` (Phase 3: harmony).
   up the actual latest when applying (versions move).
 - **UniFi is IPv4-first for adoption** — the entire eth3 saga. Don't fight it on
   IPv6; the `dualstack` VLAN + DHCPv4 is the real fix.
+- **UniFi OS Server** needs Podman ≥4.3.1 + slirp4netns ≥1.2, ~4 GB RAM, 20 GB+
+  disk; verify the UI port and the inform flow when building the role.
 - **nexus shipped with an all-ports bridge** that stitched eth3 into production
   VLANs (isolation breach) — keep the gear cabled only where intended.
 - **Knot Resolver forwards to IPs, not hostnames** — that's why auth has a static

@@ -20,92 +20,23 @@ set firewall ipv6 forward filter rule 30 inbound-interface name '{{ wan_interfac
 set firewall ipv6 forward filter rule 30 protocol 'udp'
 set firewall ipv6 forward filter rule 30 source port '443'
 
-set firewall ipv6 forward filter rule 100 description 'management reaches everything'
-set firewall ipv6 forward filter rule 100 action 'accept'
-set firewall ipv6 forward filter rule 100 inbound-interface name '{{ lan_interface }}.{{ vlans.management }}'
+{% for flow in firewall_flows %}
+set firewall ipv6 forward filter rule {{ flow.rule }} description '{{ flow.description }}'
+set firewall ipv6 forward filter rule {{ flow.rule }} action 'accept'
+set firewall ipv6 forward filter rule {{ flow.rule }} inbound-interface name '{{ lan_interface }}.{{ vlans[flow.source] }}'
+{% if flow.destination is defined and flow.destination == 'wan' %}
+set firewall ipv6 forward filter rule {{ flow.rule }} outbound-interface name '{{ wan_interface }}'
+{% elif flow.destination is defined %}
+set firewall ipv6 forward filter rule {{ flow.rule }} outbound-interface name '{{ lan_interface }}.{{ vlans[flow.destination] }}'
+{% endif %}
+{% if flow.protocol is defined %}
+set firewall ipv6 forward filter rule {{ flow.rule }} protocol '{{ flow.protocol }}'
+{% endif %}
+{% if flow.ports is defined %}
+set firewall ipv6 forward filter rule {{ flow.rule }} destination port '{{ flow.ports | join(",") }}'
+{% endif %}
 
-set firewall ipv6 forward filter rule 200 description 'trusted to internet'
-set firewall ipv6 forward filter rule 200 action 'accept'
-set firewall ipv6 forward filter rule 200 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
-set firewall ipv6 forward filter rule 200 outbound-interface name '{{ wan_interface }}'
-
-set firewall ipv6 forward filter rule 210 description 'trusted to edge (reverse proxy) only'
-set firewall ipv6 forward filter rule 210 action 'accept'
-set firewall ipv6 forward filter rule 210 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
-set firewall ipv6 forward filter rule 210 outbound-interface name '{{ lan_interface }}.{{ vlans.edge }}'
-set firewall ipv6 forward filter rule 210 protocol 'tcp'
-set firewall ipv6 forward filter rule 210 destination port '80,443'
-
-set firewall ipv6 forward filter rule 215 description 'DNS from trusted to polaris'
-set firewall ipv6 forward filter rule 215 action 'accept'
-set firewall ipv6 forward filter rule 215 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
-set firewall ipv6 forward filter rule 215 outbound-interface name '{{ lan_interface }}.{{ vlans.services }}'
-set firewall ipv6 forward filter rule 215 protocol 'tcp_udp'
-set firewall ipv6 forward filter rule 215 destination port '53'
-
-set firewall ipv6 forward filter rule 220 description 'trusted to iot devices'
-set firewall ipv6 forward filter rule 220 action 'accept'
-set firewall ipv6 forward filter rule 220 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
-set firewall ipv6 forward filter rule 220 outbound-interface name '{{ lan_interface }}.{{ vlans.iot }}'
-
-set firewall ipv6 forward filter rule 230 description 'ssh from trusted to management'
-set firewall ipv6 forward filter rule 230 action 'accept'
-set firewall ipv6 forward filter rule 230 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
-set firewall ipv6 forward filter rule 230 outbound-interface name '{{ lan_interface }}.{{ vlans.management }}'
-set firewall ipv6 forward filter rule 230 protocol 'tcp'
-set firewall ipv6 forward filter rule 230 destination port '22'
-
-set firewall ipv6 forward filter rule 235 description 'proxmox API from trusted to management'
-set firewall ipv6 forward filter rule 235 action 'accept'
-set firewall ipv6 forward filter rule 235 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
-set firewall ipv6 forward filter rule 235 outbound-interface name '{{ lan_interface }}.{{ vlans.management }}'
-set firewall ipv6 forward filter rule 235 protocol 'tcp'
-set firewall ipv6 forward filter rule 235 destination port '8006'
-
-set firewall ipv6 forward filter rule 240 description 'ssh from trusted to services'
-set firewall ipv6 forward filter rule 240 action 'accept'
-set firewall ipv6 forward filter rule 240 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
-set firewall ipv6 forward filter rule 240 outbound-interface name '{{ lan_interface }}.{{ vlans.services }}'
-set firewall ipv6 forward filter rule 240 protocol 'tcp'
-set firewall ipv6 forward filter rule 240 destination port '22'
-
-set firewall ipv6 forward filter rule 250 description 'ssh from trusted to edge'
-set firewall ipv6 forward filter rule 250 action 'accept'
-set firewall ipv6 forward filter rule 250 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
-set firewall ipv6 forward filter rule 250 outbound-interface name '{{ lan_interface }}.{{ vlans.edge }}'
-set firewall ipv6 forward filter rule 250 protocol 'tcp'
-set firewall ipv6 forward filter rule 250 destination port '22'
-
-set firewall ipv6 forward filter rule 300 description 'services to internet'
-set firewall ipv6 forward filter rule 300 action 'accept'
-set firewall ipv6 forward filter rule 300 inbound-interface name '{{ lan_interface }}.{{ vlans.services }}'
-set firewall ipv6 forward filter rule 300 outbound-interface name '{{ wan_interface }}'
-
-set firewall ipv6 forward filter rule 310 description 'services to iot devices (home assistant, zigbee)'
-set firewall ipv6 forward filter rule 310 action 'accept'
-set firewall ipv6 forward filter rule 310 inbound-interface name '{{ lan_interface }}.{{ vlans.services }}'
-set firewall ipv6 forward filter rule 310 outbound-interface name '{{ lan_interface }}.{{ vlans.iot }}'
-
-set firewall ipv6 forward filter rule 400 description 'iot to internet'
-set firewall ipv6 forward filter rule 400 action 'accept'
-set firewall ipv6 forward filter rule 400 inbound-interface name '{{ lan_interface }}.{{ vlans.iot }}'
-set firewall ipv6 forward filter rule 400 outbound-interface name '{{ wan_interface }}'
-
-set firewall ipv6 forward filter rule 500 description 'guest to internet'
-set firewall ipv6 forward filter rule 500 action 'accept'
-set firewall ipv6 forward filter rule 500 inbound-interface name '{{ lan_interface }}.{{ vlans.guest }}'
-set firewall ipv6 forward filter rule 500 outbound-interface name '{{ wan_interface }}'
-
-set firewall ipv6 forward filter rule 700 description 'edge to internet'
-set firewall ipv6 forward filter rule 700 action 'accept'
-set firewall ipv6 forward filter rule 700 inbound-interface name '{{ lan_interface }}.{{ vlans.edge }}'
-set firewall ipv6 forward filter rule 700 outbound-interface name '{{ wan_interface }}'
-
-set firewall ipv6 forward filter rule 710 description 'edge (reverse proxy) to services backends and DNS-01'
-set firewall ipv6 forward filter rule 710 action 'accept'
-set firewall ipv6 forward filter rule 710 inbound-interface name '{{ lan_interface }}.{{ vlans.edge }}'
-set firewall ipv6 forward filter rule 710 outbound-interface name '{{ lan_interface }}.{{ vlans.services }}'
-
+{% endfor %}
 set firewall ipv6 input filter default-action 'drop'
 set firewall ipv6 input filter default-log
 

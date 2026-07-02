@@ -1,10 +1,9 @@
 # Deferred work
 
-- Create the untrusted VLAN (60) in the gateway role: internet only, no
-  inter-VLAN access; intra-VLAN isolation via Proxmox per-VM firewall (and
-  switch port isolation once lagrange exists)
-- Deploy atlas (step-ca) and distribute its root certificate to every managed
-  device
+- Populate the untrusted VLAN (60): the VLAN exists on vanguard but has no
+  forward rules yet — add internet-only egress, no inter-VLAN access;
+  intra-VLAN isolation via Proxmox per-VM firewall (and switch port isolation
+  on nexus)
 
 - NTP redirect rule: force IoT devices with hardcoded public NTP (pool.ntp.org)
   to use vanguard instead (outbound UDP 123 redirect)
@@ -23,24 +22,6 @@
 - Configure eth1 (5G backup WAN) and WAN failover
 - Managed switch: VLAN enforcement + untagged wired devices (currently wired
   devices must tag their own traffic)
-- Once polaris is built: do DNS64 locally (AdGuard), point RDNSS at polaris,
-  and restore Cloudflare + Google as plain upstreams
-- Split DNS into layers so we can serve record types AdGuard can't (TXT/SRV/CAA
-  — AdGuard only does A/AAAA/CNAME rewrites). Proposed flow: clients -> polaris
-  (AdGuard: filter + per-client logging) -> a resolver authoritative for .x (any
-  record type, from a typed zone in the repo) that also does DNS64 and forwards
-  public queries to Google; polaris stops doing DNS64 / .x rewrites. Runs on the
-  dns VM on a non-53 port with AdGuard's upstream pointed at it. Also unlocks
-  ACME DNS-01 / wildcard certs later. Software undecided: PowerDNS (Route-53-
-  style, API-first, auth+recursor split — AWS structures Route 53 the same way),
-  BIND9 (all-in-one), or Knot (modern, split).
-- Once the API DNS (above) exists, switch harmony's ACME from TLS-ALPN-01 to
-  DNS-01 and delete the per-domain `genesis` network aliases on the harmony
-  container. Those aliases are a workaround: TLS-ALPN-01/HTTP-01 require atlas to
-  connect to the service domain to validate, which hairpins because atlas and
-  harmony are both containers — so each routed domain is aliased onto genesis to
-  make that hop container-to-container. DNS-01 (TXT record, no inbound
-  connection) removes the hop and the aliases entirely.
 - Ship vanguard logs to hubble via remote syslog (Grafana + Loki + Alloy) and
   add the management -> services syslog firewall rule
 - Consider restricting the forward ICMPv6 rule to specific types (currently
@@ -52,19 +33,23 @@
 - Docker Compose service hygiene: audit every existing role so each service
   meets the "Service definition hygiene" requirement in CLAUDE.md.
 - Retire the shared `genesis` docker network: with DNS-01 no service needs the
-  ACME hairpin anymore, so only unity still uses it (app↔mongo, which the compose
-  default bridge would cover). Move unity off `genesis` and drop the
-  `docker network create genesis` task from the docker role. Left for later
-  because unity's networking had finicky fixes; verify on a unity redeploy.
+  ACME hairpin anymore, and the Docker unity role (its last user) is gone —
+  only the `docker network create genesis` task in the docker role remains.
+  Drop it once comfortable nothing else relies on it.
 - Tighten firewall forward rule 710 (edge -> services): currently unscoped like
   rule 310. Scope to the actual backend ports (atlas 9000, atlas-ca 9001,
   AdGuard UI 3000, knot DDNS 5354, unity 8443, DNS 53) once the backend set
   stabilizes.
 
-- Migrate unity from the standalone UniFi Network Application (the Docker image)
-  to UniFi OS Server: Ubiquiti is deprecating the standalone app ("won't support
-  upcoming Network versions"). UniFi OS Server is a full OS appliance, not a
-  container — so it becomes a dedicated Terraform-provisioned VM, not an Ansible
-  Docker role, and is more Ubiquiti-account/cloud-coupled. Do it when committing
-  to the UniFi switch/AP buildout or when the standalone app stops getting
-  updates; until then the Docker app works and fits the repo.
+- Pin unity's self-signed cert in harmony: once UniFi OS Server is installed,
+  export its generated cert, commit it to the harmony role, and replace the
+  unity serversTransport's `insecureSkipVerify` with `rootCAs` + `serverName`
+  so the edge→dualstack hop is authenticated, not just encrypted. Can't be
+  done pre-install (the cert doesn't exist yet); re-export if UniFi ever
+  regenerates it (the route fails loudly if so).
+- Codify the UniFi WLANs (SSIDs `x`/`x-iot`/`x-guest`, passwords via op env
+  vars) in terraform/unifi so a fresh unity is fully rebuildable from the repo.
+  Deferred: against the old Docker unity the provider corrupted state and
+  changes silently failed to apply (cause unknown) — configure UniFi OS Server
+  manually first, then re-attempt and investigate provider-vs-OS-Server
+  compatibility.

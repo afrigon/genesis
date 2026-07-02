@@ -23,7 +23,7 @@ template:
 zone:
 {% for zone in dns_zones %}
   - domain: {{ zone }}.
-    file: /etc/knot/zones/{{ zone }}.zone
+    file: /config/zones/{{ zone }}.zone
 {% if zone == 'x' %}
     acl: acme_update
 {% endif %}

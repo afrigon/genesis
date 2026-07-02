@@ -6,6 +6,7 @@ network:
 # Synthesize A -> AAAA into the NAT64 prefix. RFC 6147: skipped automatically
 # for names that already return AAAA, so the local zones below are untouched.
 dns64:
+  enable: true
   prefix: 64:ff9b::/96
 
 forward:

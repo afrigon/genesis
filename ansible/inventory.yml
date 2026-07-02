@@ -17,3 +17,5 @@ all:
           ansible_host: fd22:1337:6769:30::4
         edge:
           ansible_host: fd22:1337:6769:70::2
+        unity:
+          ansible_host: fd22:1337:6769:80::2

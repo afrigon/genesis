@@ -4,7 +4,7 @@
     that:
       - lookup('env', 'ATLAS_INTERMEDIATE_CA_KEY') | length > 0
       - lookup('env', 'ATLAS_INTERMEDIATE_CA_PASSWORD') | length > 0
-    fail_msg: "ATLAS_* secrets missing — run: op run --env-file=ansible/.env.op -- make apply LIMIT=core"
+    fail_msg: "ATLAS_* secrets missing — run: op run --env-file=ansible/.env.op -- make apply ANSIBLE_LIMIT=core"
     quiet: true
 
 - name: Create atlas project directories

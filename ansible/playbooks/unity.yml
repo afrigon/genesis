@@ -1,0 +1,8 @@
+---
+- name: Configure unity VM (UniFi OS Server)
+  hosts: unity
+  become: true
+  gather_facts: true
+  roles:
+    - common
+    - { role: unity, tags: unity }

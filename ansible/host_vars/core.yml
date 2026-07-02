@@ -1,2 +1,2 @@
 ---
-host_description: Reverse-proxy & trust core (atlas, harmony, janus)
+host_description: DNS & trust core (polaris, atlas)

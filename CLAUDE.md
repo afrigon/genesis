@@ -129,6 +129,10 @@ TLS for `.x` names is issued by an internal CA (atlas, step-ca). Its root
 certificate is distributed to managed hosts by Ansible and trusted manually
 (once) on personal devices.
 
+Every managed host sets `host_description` in its host_vars, shown in the SSH
+login banner. Format: `{Name} / {software or role}` (e.g.
+`Unity / UniFi OS Server`).
+
 The full service and device catalog — software choices, VLAN placement, and
 name rationale — lives in `services.md`. New services are added there first.
 
@@ -160,7 +164,7 @@ name rationale — lives in `services.md`. New services are added there first.
   declarative: rendered every run, container recreated on change. Per-host
   playbooks (`core.yml`, `services.yml`, `edge.yml`) list `common`, `docker`,
   then the host's service roles, each tagged with its name for
-  `make apply LIMIT=<host> TAGS=<service>`.
+  `make apply ANSIBLE_LIMIT=<host> ANSIBLE_TAGS=<service>`.
 - **Container networking — bridge by default, host by exception.** Services run
   in bridge mode and publish only the ports they need; the Docker daemon is
   configured for IPv6 (`/etc/docker/daemon.json`: `ipv6` + `ip6tables` +
@@ -212,10 +216,22 @@ restructured as the project grows.
   entry.
 - When pinning a version (container image tag, package, schema), look up the
   actual current latest version rather than guessing from memory — they move.
+- Read facts through `ansible_facts['x']`, never the injected `ansible_x`
+  variables (deprecated, removed in ansible-core 2.24).
 - Any IPv4 usage must be justified in a comment or doc next to where it is
   introduced.
 - Follow the addressing rules above: static addresses for infrastructure,
   SLAAC only for clients.
+- **Firewall policy is data.** Inter-VLAN accept rules live in `firewall_flows`
+  (`ansible/host_vars/vanguard.yml`), grouped by purpose; protocol plumbing
+  (ICMPv6, NAT64, QUIC) and the input chains stay literal in `firewall.j2`.
+  Fields: `source`/`destination` are VLAN names (`wan` = internet egress; omit
+  `destination` for everywhere); `ports` is always a list. Rule numbers are
+  stable IDs and the operator's deletion targets — never renumber or reuse
+  them. Scheme: one hundreds-block per source tier (VLAN id × 10: management
+  100s … dualstack 800s); x00 is the tier's broadest egress, with specific
+  destinations in the tens above it; below 100 is protocol plumbing; 1000+ is
+  IPv4 (config-port, dualstack).
 - **Removing config:** Ansible only merges `set` lines — it never deletes.
   When config is removed from the gateway templates, give the user the manual
   `delete` commands to run on the device; never bake one-off cleanup tasks

@@ -48,7 +48,7 @@ http:
     unity:
       loadBalancer:
         servers:
-          - url: "https://[fd22:1337:6769:30::4]:8443"
+          - url: "https://[fd22:1337:6769:80::2]:11443"
         serversTransport: unity-backend
 
   middlewares:
@@ -59,8 +59,10 @@ http:
 
   serversTransports:
     # UniFi only serves HTTPS, with its own self-signed cert, and can't easily be
-    # given an atlas cert — so harmony re-encrypts but skips verification. Safe
-    # only because this hop stays on sol's bridge and never reaches the wire.
+    # given an atlas cert — so harmony re-encrypts but skips verification. The
+    # edge→dualstack hop hairpins through vanguard on the physical trunk:
+    # encrypted but unauthenticated, accepted as residual risk on the internal
+    # wire.
     unity-backend:
       insecureSkipVerify: true
 

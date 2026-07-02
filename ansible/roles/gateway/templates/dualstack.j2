@@ -25,8 +25,3 @@ set firewall ipv4 forward filter rule 1100 description 'dualstack IPv4 to intern
 set firewall ipv4 forward filter rule 1100 action 'accept'
 set firewall ipv4 forward filter rule 1100 inbound-interface name '{{ lan_interface }}.{{ vlans.dualstack }}'
 set firewall ipv4 forward filter rule 1100 outbound-interface name '{{ wan_interface }}'
-
-set firewall ipv6 forward filter rule 800 description 'dualstack to internet'
-set firewall ipv6 forward filter rule 800 action 'accept'
-set firewall ipv6 forward filter rule 800 inbound-interface name '{{ lan_interface }}.{{ vlans.dualstack }}'
-set firewall ipv6 forward filter rule 800 outbound-interface name '{{ wan_interface }}'

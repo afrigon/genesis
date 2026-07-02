@@ -26,6 +26,8 @@ services:
     image: cznic/knot:v3.5.5
     container_name: polaris-auth
     restart: unless-stopped
+    # the image's default command is a bash shell, not the daemon
+    command: knotd
     networks:
       polaris:
         # static so polaris-resolver can forward the local zones to it
@@ -36,8 +38,8 @@ services:
       - "5354:53/udp"
       - "5354:53/tcp"
     volumes:
-      - ./auth/knot.conf:/etc/knot/knot.conf:ro
-      - ./auth/zones:/etc/knot/zones:ro
+      - ./auth/knot.conf:/config/knot.conf:ro
+      - ./auth/zones:/config/zones:ro
       - ./auth/data:/var/lib/knot
 
 networks:

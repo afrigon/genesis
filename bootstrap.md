@@ -18,7 +18,7 @@ iface vmbr0 inet manual
     bridge-stp off
     bridge-fd 0
     bridge-vlan-aware yes
-    bridge-vids 10 30 60
+    bridge-vids 10 30 60 70 80
 
 auto vmbr0.10
 iface vmbr0.10 inet6 static

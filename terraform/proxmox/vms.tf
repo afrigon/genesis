@@ -9,6 +9,7 @@ module "vm" {
   disk_size         = each.value.disk_size
   vlan              = each.value.vlan
   ipv6_address      = each.value.ipv6_address
+  ipv4              = each.value.ipv4
   datastore         = var.vm_datastore
   snippet_datastore = var.image_datastore
   bridge            = var.network_bridge

@@ -24,3 +24,12 @@ services:
       - ./dynamic:/dynamic:ro
       - ./certs/root_ca.crt:/certs/root_ca.crt:ro
       - ./acme:/acme
+
+# compose-created networks are IPv4-only regardless of the daemon's IPv6
+# settings; lego dials atlas and the DDNS endpoint on core's IPv6 ULA
+networks:
+  default:
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: fd23:1337:6769:4::/64

@@ -1,35 +1,37 @@
 ---
-- name: Create unity directory
-  ansible.builtin.file:
-    path: "{{ services_root }}/unity"
-    state: directory
-    mode: "0750"
+- name: Install UniFi OS Server prerequisites
+  ansible.builtin.apt:
+    name:
+      - podman
+      - slirp4netns
+    state: present
+    update_cache: true
 
-- name: Deploy compose file
-  ansible.builtin.copy:
-    src: compose.yaml
-    dest: "{{ services_root }}/unity/compose.yaml"
-    mode: "0640"
-  register: unity_compose
+- name: Detect an existing UniFi OS Server install
+  ansible.builtin.shell: command -v uosserver
+  register: unity_installed
+  changed_when: false
+  failed_when: false
 
-- name: Deploy Mongo init script
-  ansible.builtin.copy:
-    src: init-mongo.sh
-    # mongo runs initdb scripts as uid 999, so it must be world-readable/exec
-    dest: "{{ services_root }}/unity/init-mongo.sh"
+- name: Look up the latest UniFi OS Server release
+  ansible.builtin.uri:
+    url: https://fw-update.ubnt.com/api/firmware-latest?filter=eq~~product~~unifi-os-server&filter=eq~~channel~~release&filter=eq~~platform~~linux-x64
+    return_content: true
+  register: unity_release
+  when: unity_installed.rc != 0
+
+- name: Download the UniFi OS Server installer
+  ansible.builtin.get_url:
+    url: "{{ (unity_release.json._embedded.firmware | first)._links.data.href }}"
+    checksum: "sha256:{{ (unity_release.json._embedded.firmware | first).sha256_checksum }}"
+    dest: /tmp/uosserver-installer
     mode: "0755"
+  when: unity_installed.rc != 0
 
-- name: Render environment file (secrets from 1Password)
-  ansible.builtin.template:
-    src: unity.env.j2
-    dest: "{{ services_root }}/unity/.env"
-    mode: "0600"
-  no_log: true
-  register: unity_env
-
-- name: Deploy unity
-  community.docker.docker_compose_v2:
-    project_src: "{{ services_root }}/unity"
-    pull: missing
-    remove_orphans: true
-    recreate: "{{ 'always' if (unity_compose is changed or unity_env is changed) else 'auto' }}"
+# One-shot bootstrap: past this point the product manages its own lifecycle
+# (podman containers, systemd units, self-updates through its UI).
+- name: Run the UniFi OS Server installer
+  ansible.builtin.command:
+    cmd: /tmp/uosserver-installer
+    stdin: "y"
+  when: unity_installed.rc != 0

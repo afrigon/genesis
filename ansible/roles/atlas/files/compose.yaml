@@ -7,6 +7,11 @@ services:
       - "9000:9000"
     volumes:
       - ./step:/home/step
+    # the image's default healthcheck dials https://localhost:9000, but the
+    # name-constrained intermediate (.x only) forbids a localhost SAN — check
+    # against the name the CA actually holds
+    healthcheck:
+      test: ["CMD", "step", "ca", "health", "--ca-url", "https://core.sol.x:9000", "--root", "/home/step/certs/root_ca.crt"]
 
   atlas-ca:
     image: busybox:1.37
@@ -19,3 +24,12 @@ services:
     volumes:
       - ./www/index.html:/www/index.html:ro
       - ./step/certs/root_ca.crt:/www/root_ca.crt:ro
+
+# compose-created networks are IPv4-only regardless of the daemon's IPv6
+# settings; atlas needs outbound IPv6 (its healthcheck dials core.sol.x's ULA)
+networks:
+  default:
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: fd23:1337:6769:3::/64

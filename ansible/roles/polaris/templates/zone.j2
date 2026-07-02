@@ -1,7 +1,7 @@
 $ORIGIN {{ zone }}.
 $TTL 300
 @   IN SOA ns hostmaster (
-        {{ zone_serial | default(ansible_date_time.epoch) }} ; serial
+        {{ zone_serial | default(ansible_facts['date_time']['epoch']) }} ; serial
         3600    ; refresh
         600     ; retry
         86400   ; expire

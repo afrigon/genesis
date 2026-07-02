@@ -15,6 +15,7 @@ variable "vlans" {
     guest      = 50
     untrusted  = 60
     edge       = 70
+    dualstack  = 80
   }
 }
 
