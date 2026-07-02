@@ -1,3 +1,172 @@
+#!/bin/sh
+bold='\033[1m' dim='\033[2m'
+green='\033[32m' yellow='\033[33m' red='\033[31m' reset='\033[0m'
 
-{{ login_banner }}
+# no terminal is attached when pam_motd renders this at login
+width=$(tput cols 2>/dev/null)
+[ -n "$width" ] || width=64
 
+# ── output ───────────────────────────────────────────────────────────
+
+row() { printf "${dim}%9s${reset} : %b\n" "$1" "$2"; }
+cont() { printf '%12s%b\n' '' "$1"; }
+
+# first line of stdin gets the label, the rest align under it
+rows() {
+  label=$1
+  while IFS= read -r value; do
+    if [ -n "$label" ]; then
+      row "$label" "$value"
+      label=''
+    else
+      cont "$value"
+    fi
+  done
+}
+
+col() {
+  if [ "$1" -ge 90 ]; then printf '%b%s%b' "$red" "$2" "$reset"
+  elif [ "$1" -ge 75 ]; then printf '%b%s%b' "$yellow" "$2" "$reset"
+  else printf '%b%s%b' "$green" "$2" "$reset"; fi
+}
+
+section() {
+  printf "\n${dim}──${reset} ${bold}%s${reset} ${dim}" "$1"
+  {% raw %}printf '─%.0s' $(seq $(( width - ${#1} - 5 ))){% endraw %}
+  printf "${reset}\n"
+}
+
+# ── sensors ──────────────────────────────────────────────────────────
+
+celsius() {
+  if [ "$1" -ge 80 ]; then c=$red
+  elif [ "$1" -ge 65 ]; then c=$yellow
+  else c=$green; fi
+  printf ' %b·%b %b%s°C%b' "$dim" "$reset" "$c" "$1" "$reset"
+}
+
+# highest temp1 among hwmon devices named in the space-separated list $1
+temp_suffix() {
+  max=''
+  for hwmon in /sys/class/hwmon/*; do
+    [ -r "$hwmon/temp1_input" ] || continue
+    case " $1 " in
+      *" $(cat "$hwmon/name") "*)
+        t=$(( $(cat "$hwmon/temp1_input") / 1000 ))
+        [ -z "$max" ] || [ "$t" -gt "$max" ] && max=$t
+        ;;
+    esac
+  done
+  [ -n "$max" ] && celsius "$max"
+}
+
+# temp1 of the hwmon device attached to physical disk $1
+disk_temp_suffix() {
+  for input in "/sys/block/$1/device/hwmon"*/temp1_input; do
+    [ -r "$input" ] || return 0
+    celsius "$(( $(cat "$input") / 1000 ))"
+    return 0
+  done
+}
+
+# one colored line per mount: partitions grouped by disk, mount-sorted,
+# columns aligned, disk temperature on each disk's first line
+disk_lines() {
+  df -h --local --output=source,target,pcent,size \
+     -x tmpfs -x devtmpfs -x overlay -x squashfs -x efivarfs | tail -n +2 |
+  while read -r source target pcent size; do
+    device=${source#/dev/}
+    disk=$device
+    [ -e "/sys/class/block/$device/partition" ] \
+      && disk=$(basename "$(readlink -f "/sys/class/block/$device/..")")
+    echo "$disk $device $target $pcent $size"
+  done |
+  sort -k1,1 -k3,3 |
+  awk '{ lines[NR] = $0
+         if (length($2) > w1) w1 = length($2)
+         if (length($3) > w2) w2 = length($3) }
+       END { for (i = 1; i <= NR; i++) { split(lines[i], f)
+         printf "%s %s %-" w1 "s  %-" w2 "s %4s of %s\n", f[1], f[4], f[2], f[3], f[4], f[5] } }' |
+  while read -r disk pcent entry; do
+    suffix=''
+    if [ "$disk" != "$last_disk" ]; then
+      suffix=$(disk_temp_suffix "$disk")
+      last_disk=$disk
+    fi
+    printf '%s\n' "$(col "${pcent%\%}" "$entry")$suffix"
+  done
+}
+
+# ── banner ───────────────────────────────────────────────────────────
+{# gradient baked at render time: the banner is static, and Debian's
+   default awk (mawk) cannot split multibyte characters anyway #}
+{% for line in login_banner_art.splitlines() %}
+{%- set length = line | length %}
+printf '%b\n' '{% for ch in line -%}
+  {%- if ch == " " %} {% elif ch in "✦✧·" -%}
+    \033[38;2;255;250;180m{{ ch }}
+  {%- else -%}
+    \033[38;2;0;{{ (255 - 255 * loop.index0 / length) | int }};255m{{ ch }}
+  {%- endif -%}
+{% endfor -%}
+\033[0m'
+{% endfor %}
+
+section system
+row host '{{ inventory_hostname }} ({{ host_description }})'
+. /etc/os-release
+row os "$PRETTY_NAME ${dim}$(uname -r)${reset}"
+read -r seconds _ < /proc/uptime
+seconds=${seconds%.*}
+up=''
+[ "$seconds" -ge 86400 ] && up="$((seconds / 86400))d "
+[ "$seconds" -ge 3600 ] && up="$up$((seconds % 86400 / 3600))h "
+row uptime "$up$((seconds % 3600 / 60))m"
+
+section resources
+cpus=$(nproc)
+read -r load1 load5 load15 _ < /proc/loadavg
+load_pct=$(awk -v l="$load1" -v c="$cpus" 'BEGIN { printf "%d", l * 100 / c }')
+row cpu "$(col "$load_pct" "$load1 $load5 $load15") ${dim}($cpus cpus)${reset}$(temp_suffix 'coretemp k10temp zenpower cpu_thermal')"
+
+set -- $(awk '/^MemTotal:/ {t=$2} /^MemAvailable:/ {a=$2} END {
+  printf "%.1f %.1f %d", t/1048576, (t-a)/1048576, (t-a)*100/t }' /proc/meminfo)
+row memory "$(col "$3" "${2}G / ${1}G ($3%)")$(temp_suffix 'spd5118 jc42')"
+
+disk_lines | rows disk
+
+section network
+ip -o addr show scope global 2>/dev/null | awk '
+  $2 !~ /^(lo|docker|veth|br-)/ { addrs[$2] = addrs[$2] ? addrs[$2] " " $4 : $4 }
+  END { for (i in addrs) print i, addrs[i] }' | sort |
+while read -r interface addresses; do
+  printf '%s\n' $addresses | rows "$interface"
+done
+
+section services
+failed=$(systemctl --failed --plain --no-legend --no-pager 2>/dev/null | awk '{print $1}' | paste -sd ' ' -)
+if [ -n "$failed" ]; then
+  row systemd "${red}failed:${reset} $failed"
+else
+  row systemd "${green}all units ok${reset}"
+fi
+
+if command -v docker >/dev/null 2>&1; then
+  if containers=$(docker ps -a --format '{% raw %}{{.Names}} {{.State}}{% endraw %}' 2>/dev/null); then
+    services='' sep=''
+    while read -r name state; do
+      [ -n "$name" ] || continue
+      if [ "$state" = running ]; then mark="${green}●${reset}"; else mark="${red}●${reset}"; fi
+      services="$services$sep$mark $name"
+      sep='  '
+    done <<EOF
+$containers
+EOF
+    [ -n "$services" ] || services="${dim}none${reset}"
+    row docker "$services"
+  else
+    row docker "${red}daemon unreachable${reset}"
+  fi
+fi
+
+printf "\n${dim}   Managed by genesis (Ansible). Manual changes will be lost.${reset}\n"

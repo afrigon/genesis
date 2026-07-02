@@ -36,10 +36,30 @@
     group: root
     mode: "0644"
 
-- name: Install login banner
+- name: Remove the static MOTD (replaced by update-motd.d)
+  ansible.builtin.file:
+    path: /etc/motd
+    state: absent
+
+- name: Remove Debian's stock dynamic MOTD script
+  ansible.builtin.file:
+    path: /etc/update-motd.d/10-uname
+    state: absent
+
+- name: Install dynamic MOTD
   ansible.builtin.template:
     src: motd.j2
-    dest: /etc/motd
+    dest: /etc/update-motd.d/10-genesis
+    owner: root
+    group: root
+    mode: "0755"
+
+# SATA drives expose temperatures only through drivetemp, which nothing
+# auto-loads (NVMe sensors are automatic); harmless no-op on VMs
+- name: Load drivetemp at boot
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/drivetemp.conf
+    content: "drivetemp\n"
     owner: root
     group: root
     mode: "0644"
