@@ -21,14 +21,16 @@ polaris_address: "{{ ula_prefix }}:30::3"
 # Canonical internal CA root, distributed into host trust stores by common
 root_ca_cert: "{{ inventory_dir }}/roles/atlas/files/root_ca.crt"
 
-# Standard login banner for every ssh-enabled host
-login_banner: |2
-     ____ _____ _   _ _____ ____ ___ ____             *
-    / ___| ____| \ | | ____/ ___|_ _/ ___|      .
-   | |  _|  _| |  \| |  _| \___ \| |\___ \   *
-   | |_| | |___| |\  | |___ ___) | | ___) |        .
-    \____|_____|_| \_|_____|____/___|____/  .
+# Banner art shared by the static VyOS banner below and the colorized dynamic
+# MOTD on Debian hosts (common role, update-motd.d)
+login_banner_art: |2
+  ▄▀▀▀ █▀▀▀ █▄  █ █▀▀▀ ▄▀▀▀ █ ▄▀▀▀    ·   ✦
+  █ ▀█ █▀▀  █ ▀▄█ █▀▀   ▀▀▄ █  ▀▀▄  ✧    ·
+   ▀▀▀ ▀▀▀▀ ▀   ▀ ▀▀▀▀ ▀▀▀  ▀ ▀▀▀      ✦
 
+# Static login banner for hosts without a dynamic MOTD (vanguard)
+login_banner: |2
+  {{ login_banner_art }}
    host : {{ inventory_hostname }} ({{ host_description }})
    --------------------------------------------------------
    Managed by genesis (Ansible). Manual changes will be lost.
