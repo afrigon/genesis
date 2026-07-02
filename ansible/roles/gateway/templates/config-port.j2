@@ -5,10 +5,6 @@ set service router-advert interface {{ config_interface }} prefix ::/64
 set service router-advert interface {{ config_interface }} nat64prefix '64:ff9b::/96'
 set service router-advert interface {{ config_interface }} name-server '{{ polaris_address }}'
 
-{# IPv4 exception: UniFi gear reads DNS only from DHCPv4 (ignores RA RDNSS and
-   DHCPv6). 192.168.1.0/24 so a factory device (defaults to 192.168.1.20) is
-   on-subnet; it gets a v4 DNS handoff to resolve `unifi`, then informs over
-   IPv6. Internal-only, no NAT. #}
 set interfaces ethernet {{ config_interface }} address '192.168.1.1/24'
 
 set service dhcp-server shared-network-name config subnet 192.168.1.0/24 subnet-id '1'
