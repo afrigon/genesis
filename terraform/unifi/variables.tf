@@ -28,3 +28,23 @@ variable "username" {
   type        = string
   description = "Device SSH login user"
 }
+
+variable "wifi_password_trusted" {
+  type      = string
+  sensitive = true
+}
+
+variable "wifi_password_iot" {
+  type      = string
+  sensitive = true
+}
+
+variable "wifi_password_guest" {
+  type      = string
+  sensitive = true
+}
+
+variable "wifi_password_dualstack" {
+  type      = string
+  sensitive = true
+}

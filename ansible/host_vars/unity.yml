@@ -1,2 +1,6 @@
 ---
 host_description: Unity / UniFi OS Server
+
+# OS Server's pasta forwards container DNS only to a same-family (IPv4)
+# resolver — vanguard's dualstack DNS handoff, which forwards to polaris
+ipv4_nameserver: 10.0.80.1

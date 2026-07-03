@@ -21,33 +21,34 @@ before automation can take over).
 - **Secure by default.** Every service must have proper authentication and a
   valid SSL/TLS certificate — no plain HTTP, no unauthenticated services.
 - **Reverse proxy only.** Services must not be directly reachable; all client
-  access goes through the reverse proxy (harmony, on the `core` VM), which
+  access goes through the reverse proxy (harmony, on the `edge` VM), which
   enforces auth, SSL, and access policy. Backends run on the `services` VM;
   harmony reaches them through a Traefik file-provider config — one route per
-  service mapping `{service}.x` to its backend's static address on the services
-  VM (Traefik's label auto-discovery only sees containers on its own Docker
-  host, and harmony runs on a different host from the apps). Enforcement is
-  entirely on vanguard, not host firewalls: the forward chain default-drops and
-  only `clients → harmony:443` is opened, so clients cannot reach backend ports.
+  service mapping `{service}.x` to its backend's static address (Traefik's
+  label auto-discovery only sees containers on its own Docker host, and
+  harmony runs on a different host from the apps). Enforcement is entirely on
+  vanguard, not host firewalls: the forward chain default-drops and only
+  `trusted → edge:80,443` is opened, so clients cannot reach backend ports.
   Stronger intra-tier isolation, if ever needed, comes from giving the app tier
   its own VLAN (gateway-mediated) — never host-level firewalls. harmony
-  terminates client TLS and speaks plain HTTP to backends; that hop is fine only
-  while it stays host-internal (VM-to-VM on sol's bridge never reaches the
-  physical wire). A backend on a different *physical* machine would cross the
-  wire in plaintext, so it must get end-to-end TLS (re-encrypt to a backend
-  serving its own atlas cert).
+  terminates client TLS; because edge and services are separate VLANs, every
+  harmony → backend hop hairpins through vanguard on the physical trunk, so a
+  plain-HTTP backend crosses the wire in plaintext. Backends should serve TLS:
+  an atlas cert, or a pinned self-signed cert where the software resists
+  replacement (unity — re-pinned from the live endpoint on every apply).
 - **Declarative over imperative.** All configuration lives in this repo.
   Manual changes on devices are considered drift and should be folded back
   into code.
 
 ## Hardware
 
-| Host     | Role                                   | Notes |
-|----------|----------------------------------------|-------|
-| vanguard | VyOS gateway / firewall                | 4× ethernet: eth0=WAN (modem), eth1=WAN backup (5G), eth2=LAN (to L2 switch), eth3=configuration (direct connection for recovery/config) |
-| sol      | Proxmox VE server                      | Hosts the reverse proxy and all VM/LXC services |
-| AP       | UniFi Express (temporary)              | On the L2 switch. SSIDs: `x` (trusted), `x-iot` (hidden), `x-guest`. Will be replaced by a dedicated AP later |
-| switch   | Dumb L2 switch (temporary)             | Will be upgraded to a managed (likely UniFi) switch for proper VLAN handling |
+| Host     | Role                              | Notes |
+|----------|-----------------------------------|-------|
+| vanguard | VyOS gateway / firewall           | 4× ethernet: eth0=WAN (modem), eth1=WAN backup (5G), eth2=LAN trunk (to nexus), eth3=configuration (direct connection for recovery/config) |
+| sol      | Proxmox VE server                 | VMs: `core` (DNS + CA), `services` (apps), `edge` (reverse proxy), `unity` (UniFi OS Server) |
+| nexus    | UniFi switch (USW-Pro-Max-16-PoE) | Port profiles enforce VLAN membership per port: `trunk` (vanguard uplink only), `hypervisor` (sol — VM VLANs only), per-VLAN access ports (wired clients don't tag) |
+| quasar   | UniFi AP (U7 Pro In-Wall)         | Broadcasts the SSIDs; PoE from nexus |
+| photon   | UniFi SmartPower PDU Pro          | Outlet mapping + supervised modem outlet |
 
 ## Network
 
@@ -77,16 +78,21 @@ The gateway (vanguard) is always at `{prefix}::1` on every VLAN.
 - **Dual prefixes:** hosts get a ULA address (internal communication, DNS,
   static config) plus a GUA via SLAAC from the ISP-delegated prefix (outbound
   internet). Never hard-code GUAs — the delegated prefix can change.
-- **DNS:** polaris (AdGuard, `dns.sol.x`) is the resolver and does DNS64
-  locally, synthesizing IPv4-only names into `64:ff9b::/96`; Cloudflare/Google
-  are plain upstreams. Clients are pointed at polaris via RA RDNSS,
-  **polaris-only** on trusted/management/services — no DNS64 fallback in the RA,
-  because RDNSS has no primary/backup (clients treat advertised servers as
-  peers), so a fallback would let them bypass polaris and miss `.x`/filtering.
-  iot/guest stay on public DNS64.
+- **DNS:** polaris is a three-container stack on the `core` VM (`30::3`):
+  `polaris-filter` (AdGuard, host network — needs real client source IPs) →
+  `polaris-resolver` (Knot Resolver: forwarding + DNS64, synthesizing
+  IPv4-only names into `64:ff9b::/96`; Cloudflare/Google upstreams) →
+  `polaris-auth` (Knot DNS: authoritative for the `x` and `unifi` zones from
+  `dns_zones`, plus RFC2136 DDNS on :5354 for ACME). Clients are pointed at
+  polaris via RA RDNSS, **polaris-only** on trusted/management/services/edge —
+  no DNS64 fallback in the RA, because RDNSS has no primary/backup (clients
+  treat advertised servers as peers), so a fallback would let them bypass
+  polaris and miss `.x`/filtering. iot/guest stay on public DNS64. The bare
+  `unifi` zone apex carries an A record: UniFi devices read DNS v4-first and
+  query A-only (though they inform over IPv6 just fine).
 - **Host resolv.conf** lists polaris first with DNS64 as fallback — safe here
   because the glibc resolver honors order (falls through only on no response),
-  which also avoids a DNS bootstrap loop for sol / the dns VM when polaris is
+  which also avoids a DNS bootstrap loop for sol / the core VM when polaris is
   down. vanguard keeps its own upstreams and never depends on a service behind
   it.
 - **IPv4 reachability:** NAT64 on vanguard translates `64:ff9b::/96`; polaris's
@@ -98,18 +104,25 @@ The gateway (vanguard) is always at `{prefix}::1` on every VLAN.
   need IPv4. It gets DHCPv4 (`10.0.80.0/24`) + NAT44, internet-only (intra-VLAN
   L2 is how UniFi devices reach the controller; cross-VLAN traffic to unity is
   IPv6), all in `roles/gateway/templates/dualstack.j2` and the `dualstack_ipv4`
-  var. Other VLANs reach IPv4-only hosts via NAT64 instead.
+  var. vanguard also hands the VLAN a v4 DNS path (DHCPv4 name-server option →
+  `dns forwarding` on `10.0.80.1` → polaris): UniFi devices and OS Server's
+  pasta only consume IPv4 DNS. Other VLANs reach IPv4-only hosts via NAT64
+  instead.
 - **Untagged LAN traffic is intentionally dead:** bare eth2 has no prefix and
   the firewall logs and drops anything arriving on it. Do not "fix" this —
   every device must be on a tagged VLAN.
 
 ### Wi-Fi
 
-| SSID      | VLAN         | Security |
-|-----------|--------------|----------|
-| `x`       | trusted (20) | WPA3 only |
-| `x-iot`   | iot (40)     | Hidden; settings optimized for IoT compatibility (e.g. WPA2, 2.4 GHz) |
-| `x-guest` | guest (50)   | Client isolation |
+| SSID          | VLAN           | Security |
+|---------------|----------------|----------|
+| `x`           | trusted (20)   | WPA3 only (PMF required); 2.4/5/6 GHz |
+| `x-iot`       | iot (40)       | Hidden; WPA2, 2.4 GHz only, `enhanced_iot` |
+| `x-dualstack` | dualstack (80) | Hidden; for devices that need native IPv4 |
+| `x-guest`     | guest (50)     | Client isolation |
+
+WLANs are managed by `terraform/unifi`; radio settings (channels, width,
+power) are deliberately manual — RF tuning wants iteration, not declaration.
 
 ## Naming convention
 
@@ -123,11 +136,17 @@ Everything is space themed and referenced by name via self-hosted DNS
   Proxmox node they run on.
 - **Physical hosts** — bare `{host}.x` (`vanguard.x`, `sol.x`).
 
-`polaris.x` is the DNS *service*, distinct from the `dns` VM (`dns.sol.x`).
+`polaris.x` is the DNS *service*'s admin UI (routed through harmony); the
+containers live on the `core` VM (`core.sol.x`).
 
-TLS for `.x` names is issued by an internal CA (atlas, step-ca). Its root
-certificate is distributed to managed hosts by Ansible and trusted manually
-(once) on personal devices.
+TLS for `.x` names is issued by an internal CA (atlas, step-ca, on `core`).
+harmony obtains its certs over ACME DNS-01: lego writes the `_acme-challenge`
+TXT to polaris-auth via RFC2136+TSIG, and atlas validates it through polaris
+locally — no inbound connection to the proxy. The intermediate is
+name-constrained to `.x` and can never hold a non-`.x` SAN (atlas's own
+healthcheck dials `core.sol.x`, never localhost). The root certificate is
+distributed to managed hosts by Ansible and trusted manually (once) on
+personal devices.
 
 Every managed host sets `host_description` in its host_vars, shown in the SSH
 login banner. Format: `{Name} / {software or role}` (e.g.
@@ -162,9 +181,12 @@ name rationale — lives in `services.md`. New services are added there first.
   when it needs injected/secret values) and brings it up inline with
   `community.docker.docker_compose_v2` — no shared deploy role. Config is
   declarative: rendered every run, container recreated on change. Per-host
-  playbooks (`core.yml`, `services.yml`, `edge.yml`) list `common`, `docker`,
-  then the host's service roles, each tagged with its name for
-  `make apply ANSIBLE_LIMIT=<host> ANSIBLE_TAGS=<service>`.
+  playbooks (`core.yml`, `services.yml`, `edge.yml`, `unity.yml`) list
+  `common`, `docker`, then the host's service roles, each tagged with its name
+  for `make apply ANSIBLE_LIMIT=<host> ANSIBLE_TAGS=<service>`. The one
+  non-Compose service is unity: UniFi OS Server is an installer-managed
+  rootless-podman appliance — its role runs the installer once and the
+  product self-manages from there.
 - **Container networking — bridge by default, host by exception.** Services run
   in bridge mode and publish only the ports they need; the Docker daemon is
   configured for IPv6 (`/etc/docker/daemon.json`: `ipv6` + `ip6tables` +
@@ -188,6 +210,15 @@ name rationale — lives in `services.md`. New services are added there first.
   different Docker host than the apps and can't see their labels, so all routing
   lives in harmony's Traefik file provider (see "Reverse proxy only"), never in
   per-container labels.
+- **UniFi — terraform/unifi owns the controller** (API-key auth): networks,
+  port profiles, WLANs, device SSH policy. The provider's "inconsistent result
+  after apply" error means the controller *normalized* a field — pin the
+  attribute to the value the error names (`wlan_band`/`wlan_bands` must agree;
+  `enhanced_iot` also forces `group_rekey = 0` and `no2ghz_oui = false`; an
+  empty custom tagged-VLAN set collapses to block-all, `auto` means
+  all-tagged). Device adoption is zero-touch on dualstack (DHCPv4 + the v4 DNS
+  handoff + the `unifi` A record); the management-VLAN override is only for
+  devices on trunk ports — access ports set the VLAN via their profile.
 - **bootstrap.md** — the manual steps required on a fresh device (network +
   SSH access) before Terraform/Ansible can manage it. Keep it minimal and up
   to date: it is the disaster-recovery entry point.

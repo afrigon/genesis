@@ -15,5 +15,15 @@ dns:
     - 2001:4860:4860::8888
   upstream_mode: load_balance
   use_dns64: false
+filters:
+  - enabled: true
+    url: https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt
+    name: AdGuard DNS filter
+    id: 1
+  - enabled: true
+    url: https://big.oisd.nl
+    name: OISD Big
+    id: 2
+filters_update_interval: 168
 filtering:
   rewrites: []

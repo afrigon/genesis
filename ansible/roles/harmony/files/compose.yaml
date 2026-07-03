@@ -17,12 +17,15 @@ services:
       # DNS-01 via core's Knot DDNS (RFC2136 + TSIG): lego writes the
       # _acme-challenge TXT instead of atlas connecting back to harmony.
       - RFC2136_NAMESERVER=[fd22:1337:6769:30::3]:5354
+      # lego defaults to hmac-sha1; must match the knot key's algorithm
+      - RFC2136_TSIG_ALGORITHM=hmac-sha256.
       - RFC2136_TSIG_KEY=acme.x.
       - RFC2136_TSIG_SECRET=${POLARIS_TSIG_SECRET}
     volumes:
       - ./traefik.yml:/etc/traefik/traefik.yml:ro
       - ./dynamic:/dynamic:ro
       - ./certs/root_ca.crt:/certs/root_ca.crt:ro
+      - ./certs/unity.crt:/certs/unity.crt:ro
       - ./acme:/acme
 
 # compose-created networks are IPv4-only regardless of the daemon's IPv6

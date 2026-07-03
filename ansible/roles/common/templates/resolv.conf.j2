@@ -1,5 +1,8 @@
 # Managed by genesis (Ansible).
 nameserver {{ polaris_address }}
+{% if ipv4_nameserver is defined %}
+nameserver {{ ipv4_nameserver }}
+{% endif %}
 {% for ns in dns_resolvers %}
 nameserver {{ ns }}
 {% endfor %}

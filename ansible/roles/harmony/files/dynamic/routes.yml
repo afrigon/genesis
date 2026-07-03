@@ -58,13 +58,14 @@ http:
         permanent: true
 
   serversTransports:
-    # UniFi only serves HTTPS, with its own self-signed cert, and can't easily be
-    # given an atlas cert — so harmony re-encrypts but skips verification. The
-    # edge→dualstack hop hairpins through vanguard on the physical trunk:
-    # encrypted but unauthenticated, accepted as residual risk on the internal
-    # wire.
+    # UniFi serves its own self-signed cert; pin it (a self-signed leaf is its
+    # own root) so the edge→dualstack hop is authenticated. The role re-pins
+    # from the live endpoint on every apply — if UniFi regenerates the cert,
+    # this route 502s until edge is re-applied.
     unity-backend:
-      insecureSkipVerify: true
+      rootCAs:
+        - /certs/unity.crt
+      serverName: unifi.local
 
 tls:
   options:

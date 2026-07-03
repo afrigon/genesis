@@ -9,5 +9,10 @@ $TTL 300
 @   IN NS ns
 ns  IN AAAA {{ polaris_address }}
 {% for r in dns_zones[zone] %}
-{{ "%-18s"|format(r.name) }} IN AAAA {{ r.address }}
+{% if r.AAAA is defined %}
+{{ "%-18s"|format(r.name) }} IN AAAA {{ r.AAAA }}
+{% endif %}
+{% if r.A is defined %}
+{{ "%-18s"|format(r.name) }} IN A    {{ r.A }}
+{% endif %}
 {% endfor %}

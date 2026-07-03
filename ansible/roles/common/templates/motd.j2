@@ -32,7 +32,7 @@ col() {
 
 section() {
   printf "\n${dim}──${reset} ${bold}%s${reset} ${dim}" "$1"
-  {% raw %}printf '─%.0s' $(seq $(( width - ${#1} - 5 ))){% endraw %}
+  printf '─%.0s' $(seq $(( width - {{ '${#1}' }} - 5 )))
   printf "${reset}\n"
 }
 
@@ -97,6 +97,30 @@ disk_lines() {
   done
 }
 
+container_rows() {
+  runtime=$1
+  command -v "$runtime" >/dev/null 2>&1 || return 0
+  if ! containers=$("$runtime" ps -a --format '{{ '{{.Names}} {{.State}}' }}' 2>/dev/null); then
+    row "$runtime" "${red}daemon unreachable${reset}"
+    return 0
+  fi
+  if [ -z "$containers" ]; then
+    # rootless containers can belong to a service user (conmon marks its owner)
+    for user in $(ps -eo user:32=,comm= | awk '$2 == "conmon" {print $1}' | sort -u); do
+      [ "$user" != "$(id -un)" ] || continue
+      containers=$(sudo -n -u "$user" XDG_RUNTIME_DIR="/run/user/$(id -u "$user")" \
+        "$runtime" ps -a --format '{{ '{{.Names}} {{.State}}' }}' 2>/dev/null)
+      [ -n "$containers" ] && break
+    done
+  fi
+  [ -n "$containers" ] || { row "$runtime" "${dim}none${reset}"; return 0; }
+  printf '%s\n' "$containers" | while read -r name state; do
+    [ -n "$name" ] || continue
+    if [ "$state" = running ]; then mark="${green}●${reset}"; else mark="${red}●${reset}"; fi
+    printf '%b %s\n' "$mark" "$name"
+  done | rows "$runtime"
+}
+
 # ── banner ───────────────────────────────────────────────────────────
 {# gradient baked at render time: the banner is static, and Debian's
    default awk (mawk) cannot split multibyte characters anyway #}
@@ -151,22 +175,7 @@ else
   row systemd "${green}all units ok${reset}"
 fi
 
-if command -v docker >/dev/null 2>&1; then
-  if containers=$(docker ps -a --format '{% raw %}{{.Names}} {{.State}}{% endraw %}' 2>/dev/null); then
-    services='' sep=''
-    while read -r name state; do
-      [ -n "$name" ] || continue
-      if [ "$state" = running ]; then mark="${green}●${reset}"; else mark="${red}●${reset}"; fi
-      services="$services$sep$mark $name"
-      sep='  '
-    done <<EOF
-$containers
-EOF
-    [ -n "$services" ] || services="${dim}none${reset}"
-    row docker "$services"
-  else
-    row docker "${red}daemon unreachable${reset}"
-  fi
-fi
+container_rows docker
+container_rows podman
 
 printf "\n${dim}   Managed by genesis (Ansible). Manual changes will be lost.${reset}\n"

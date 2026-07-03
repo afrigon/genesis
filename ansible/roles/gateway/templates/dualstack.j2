@@ -2,8 +2,19 @@ set interfaces ethernet {{ lan_interface }} vif {{ vlans.dualstack }} address '{
 
 set service dhcp-server shared-network-name dualstack subnet {{ dualstack_ipv4.subnet }} subnet-id '{{ vlans.dualstack }}'
 set service dhcp-server shared-network-name dualstack subnet {{ dualstack_ipv4.subnet }} option default-router '{{ dualstack_ipv4.gateway }}'
+set service dhcp-server shared-network-name dualstack subnet {{ dualstack_ipv4.subnet }} option name-server '{{ dualstack_ipv4.gateway }}'
 set service dhcp-server shared-network-name dualstack subnet {{ dualstack_ipv4.subnet }} range 0 start '{{ dualstack_ipv4.dhcp_range_start }}'
 set service dhcp-server shared-network-name dualstack subnet {{ dualstack_ipv4.subnet }} range 0 stop '{{ dualstack_ipv4.dhcp_range_stop }}'
+
+set service dns forwarding listen-address '{{ dualstack_ipv4.gateway }}'
+set service dns forwarding allow-from '{{ dualstack_ipv4.subnet }}'
+set service dns forwarding name-server '{{ polaris_address }}'
+
+set firewall ipv4 input filter rule 1102 description 'DNS from dualstack'
+set firewall ipv4 input filter rule 1102 action 'accept'
+set firewall ipv4 input filter rule 1102 inbound-interface name '{{ lan_interface }}.{{ vlans.dualstack }}'
+set firewall ipv4 input filter rule 1102 protocol 'tcp_udp'
+set firewall ipv4 input filter rule 1102 destination port '53'
 
 set nat source rule 1100 description 'dualstack IPv4 to internet'
 set nat source rule 1100 outbound-interface name '{{ wan_interface }}'

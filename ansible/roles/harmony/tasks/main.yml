@@ -50,9 +50,36 @@
     mode: "0644"
   register: harmony_ca
 
+- name: Fetch unity's certificate
+  ansible.builtin.shell: >-
+    openssl s_client -connect [fd22:1337:6769:80::2]:11443 </dev/null 2>/dev/null
+    | openssl x509
+  register: harmony_unity_fetch
+  changed_when: false
+  failed_when: false
+
+- name: Pin unity's certificate
+  ansible.builtin.copy:
+    content: "{{ harmony_unity_fetch.stdout }}\n"
+    dest: "{{ services_root }}/harmony/certs/unity.crt"
+    mode: "0644"
+  when: harmony_unity_fetch.rc == 0
+  register: harmony_unity_cert
+
+- name: Check for a pinned unity certificate
+  ansible.builtin.stat:
+    path: "{{ services_root }}/harmony/certs/unity.crt"
+  register: harmony_unity_stat
+
+- name: Require a pinned unity certificate
+  ansible.builtin.assert:
+    that: harmony_unity_stat.stat.exists
+    fail_msg: "unity is unreachable and no certificate was previously pinned — bring unity up and re-apply edge"
+    quiet: true
+
 - name: Deploy harmony
   community.docker.docker_compose_v2:
     project_src: "{{ services_root }}/harmony"
     pull: missing
     remove_orphans: true
-    recreate: "{{ 'always' if (harmony_static is changed or harmony_ca is changed) else 'auto' }}"
+    recreate: "{{ 'always' if (harmony_static is changed or harmony_ca is changed or harmony_unity_cert is changed) else 'auto' }}"

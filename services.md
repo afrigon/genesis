@@ -1,9 +1,9 @@
 # Services
 
 Every service is reachable by DNS name following the convention `{service}.x`
-(e.g. `gaia.x`, `andromeda.x`). Records live in polaris (AdGuard Home);
-services behind the reverse proxy resolve to harmony, which routes by
-hostname and enforces auth (janus) and TLS.
+(e.g. `gaia.x`, `andromeda.x`). Records live in the `dns_zones` map (polaris
+role), served by polaris; services behind the reverse proxy resolve to
+harmony, which routes by hostname and enforces auth (janus) and TLS.
 
 TLS: an internal CA (atlas) issues certificates for `.x` names. Its root
 certificate must be trusted on every managed device.
@@ -14,25 +14,26 @@ certificate must be trusted on every managed device.
 |----------|-------------------------------|--------------|
 | vanguard | VyOS gateway / firewall       | all (router) |
 | sol      | Proxmox VE host               | management   |
-| titan    | Windows workstation           | trusted      |
+| titan    | Arch Linux workstation        | trusted      |
 | ceres    | NAS (dedicated machine)       | management   |
-| quasar   | Wi-Fi access point            | management   |
-| nexus    | Managed switch                | management   |
+| quasar   | Wi-Fi access point            | dualstack    |
+| nexus    | Managed switch                | dualstack    |
 | rover    | Mac mini (macOS CI runner)    | untrusted    |
 
 ## Services
 
-All run as VMs/LXC on sol, in the services VLAN, behind harmony — except the
-untrusted VLAN entries.
+All run in containers on sol's VMs: DNS + CA on `core` and apps on `services`
+(both services VLAN), the proxy pair on `edge`, and unity on its own VM
+(dualstack) — except the untrusted VLAN entries.
 
 | Name      | Software                     | Role                          |
 |-----------|------------------------------|-------------------------------|
 | harmony   | Traefik                      | Reverse proxy, TLS, routing   |
-| polaris   | AdGuard Home                 | DNS, ad blocking              |
+| polaris   | AdGuard + Knot Resolver + Knot DNS | DNS: filtering, DNS64, authoritative `x` |
 | janus     | Authelia                     | SSO / authentication          |
 | atlas     | step-ca                      | Internal certificate authority |
 | airlock   | Tailscale                    | VPN / remote access (on sol)  |
-| unity     | UniFi Network Application    | Network controller (APs, switches) |
+| unity     | UniFi OS Server              | Network controller (APs, switches) |
 | hubble    | Grafana (+ Prometheus, Loki) | Monitoring & logs             |
 | pulsar    | Uptime Kuma                  | Uptime monitoring             |
 | houston   | Homepage (or custom web app) | Dashboard / home page         |
@@ -44,7 +45,7 @@ untrusted VLAN entries.
 | andromeda | Jellyfin                     | Media server                  |
 | nebula    | Immich                       | Photo management              |
 
-### Untrusted VLAN (60, to be created)
+### Untrusted VLAN (60)
 
 For services running 3rd-party or arbitrary code. Internet access only: no
 access to other VLANs, and no access to each other within the VLAN.
@@ -63,11 +64,13 @@ Consumer devices (Apple TV, Chromecast, game consoles, smart speakers, TVs)
 live on the trusted VLAN. Unauditable hardware lives in iot: trusted can
 reach it, it can only reach the internet.
 
-| Name    | What            | VLAN    |
-|---------|-----------------|---------|
-| nova    | 3D printer      | iot     |
-| aurora  | Ink printer     | iot     |
-| pioneer | Label printer   | iot     |
+| Name    | What            | VLAN      |
+|---------|-----------------|-----------|
+| nova    | 3D printer      | iot       |
+| aurora  | Ink printer     | iot       |
+| pioneer | Label printer   | iot       |
+| photon  | Smart PDU       | dualstack |
+| eclipse | UPS (future)    | dualstack |
 | —       | Apple TV        | trusted |
 | —       | Chromecast      | trusted |
 
@@ -99,3 +102,5 @@ reach it, it can only reach the internet.
 - **aurora** — paints color across the sky; the ink printer
 - **pioneer** — the Pioneer plaque, a tag bolted on to identify; the label printer
 - **titan** — the heavyweight moon; workstation
+- **photon** — the particle that delivers the sun's energy to everything; the PDU
+- **eclipse** — satellites run on batteries while crossing the shadow; the UPS

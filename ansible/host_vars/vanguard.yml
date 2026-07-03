@@ -1,5 +1,5 @@
 ---
-host_description: VyOS gateway / firewall
+host_description: Vanguard / VyOS gateway & firewall
 
 # Physical ports
 wan_interface: eth0          # WAN (modem)

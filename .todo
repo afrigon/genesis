@@ -1,5 +1,15 @@
 # Deferred work
 
+- Buildout: janus (forward-auth on edge, currently parked), hubble (monitoring
+  on services), gaia + soyuz + hermes (Home Assistant, Zigbee, MQTT)
+- The https://x homepage (landing page on the edge) needs the atlas
+  intermediate re-issued with the name constraint widened to also permit the
+  bare `x` label
+- Verify Traefik actually renews the short-lived (24h) atlas certs in time
+  before relying on it; bump the leaf duration if it's too lazy
+- harmony -> backend hops cross the physical trunk since the edge tier split:
+  AdGuard's UI (polaris.x -> :3000) travels plaintext — give backends atlas
+  certs (re-encrypt end to end) or explicitly accept the exposure
 - Populate the untrusted VLAN (60): the VLAN exists on vanguard but has no
   forward rules yet — add internet-only egress, no inter-VLAN access;
   intra-VLAN isolation via Proxmox per-VM firewall (and switch port isolation
@@ -8,7 +18,7 @@
 - NTP redirect rule: force IoT devices with hardcoded public NTP (pool.ntp.org)
   to use vanguard instead (outbound UDP 123 redirect)
 - Tighten firewall forward rule 310 (services -> iot) to gaia's address once
-  gaia exists
+  gaia exists (Zigbee coordinator hop: SLZB serial socket is TCP 6638)
 - Once polaris serves encrypted DNS, switch firewall forward rule 215
   (trusted -> polaris) from plaintext 53 to the TLS port (853 DoT / 443 DoH)
   and drop plaintext
@@ -20,8 +30,6 @@
 - Remove default-log from the input chain once the network is stable (keep it
   on forward)
 - Configure eth1 (5G backup WAN) and WAN failover
-- Managed switch: VLAN enforcement + untagged wired devices (currently wired
-  devices must tag their own traffic)
 - Ship vanguard logs to hubble via remote syslog (Grafana + Loki + Alloy) and
   add the management -> services syslog firewall rule
 - Consider restricting the forward ICMPv6 rule to specific types (currently
@@ -38,18 +46,15 @@
   Drop it once comfortable nothing else relies on it.
 - Tighten firewall forward rule 710 (edge -> services): currently unscoped like
   rule 310. Scope to the actual backend ports (atlas 9000, atlas-ca 9001,
-  AdGuard UI 3000, knot DDNS 5354, unity 8443, DNS 53) once the backend set
-  stabilizes.
+  AdGuard UI 3000, knot DDNS 5354, DNS 53) once the backend set stabilizes.
 
-- Pin unity's self-signed cert in harmony: once UniFi OS Server is installed,
-  export its generated cert, commit it to the harmony role, and replace the
-  unity serversTransport's `insecureSkipVerify` with `rootCAs` + `serverName`
-  so the edge→dualstack hop is authenticated, not just encrypted. Can't be
-  done pre-install (the cert doesn't exist yet); re-export if UniFi ever
-  regenerates it (the route fails loudly if so).
-- Codify the UniFi WLANs (SSIDs `x`/`x-iot`/`x-guest`, passwords via op env
-  vars) in terraform/unifi so a fresh unity is fully rebuildable from the repo.
-  Deferred: against the old Docker unity the provider corrupted state and
-  changes silently failed to apply (cause unknown) — configure UniFi OS Server
-  manually first, then re-attempt and investigate provider-vs-OS-Server
-  compatibility.
+- Commission the SLZB Zigbee coordinator for the gaia/soyuz buildout: space
+  name, static address on the iot VLAN, and pick the Zigbee channel against
+  the Wi-Fi plan (Wi-Fi is on 2.4 ch 6; Zigbee 25/26 dodge it but sit near
+  the neighbors' ch 11, Zigbee 15 collides with ch 6).
+
+- Update the bad gateway error page served by harmony (Traefik) to match the
+  homelab's visual style instead of the default Traefik error page.
+
+- Audit container logs across all VMs (`docker logs <name>`) for silent errors
+  and warnings; fix or suppress anything that shouldn't be there.
