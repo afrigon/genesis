@@ -6,3 +6,6 @@
   roles:
     - common
     - docker
+    - { role: gaia, tags: gaia }
+    - { role: echo, tags: echo }
+    - { role: rosetta, tags: rosetta }

@@ -1,0 +1,22 @@
+services:
+  echo:
+    image: eclipse-mosquitto:2.1.2-alpine
+    container_name: echo
+    hostname: echo
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      # not :ro — mosquitto_passwd -U hashes it in place at deploy
+      - ./passwd:/mosquitto/config/passwd
+      - ./data:/mosquitto/data
+
+networks:
+  default:
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: fd23:1337:6769:6::/64

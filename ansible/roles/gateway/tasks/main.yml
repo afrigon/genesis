@@ -30,6 +30,7 @@
     - firewall
     - config-port
     - dualstack
+    - iot
 
 - name: Remove default VyOS NTP servers
   vyos.vyos.vyos_config:

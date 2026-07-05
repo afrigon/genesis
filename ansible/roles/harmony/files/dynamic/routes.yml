@@ -31,6 +31,20 @@ http:
       service: unity
       tls:
         certResolver: atlas
+    gaia:
+      rule: "Host(`gaia.x`)"
+      entryPoints:
+        - websecure
+      service: gaia
+      tls:
+        certResolver: atlas
+    rosetta:
+      rule: "Host(`rosetta.x`)"
+      entryPoints:
+        - websecure
+      service: rosetta
+      tls:
+        certResolver: atlas
 
   services:
     noop:
@@ -50,6 +64,14 @@ http:
         servers:
           - url: "https://[fd22:1337:6769:80::2]:11443"
         serversTransport: unity-backend
+    gaia:
+      loadBalancer:
+        servers:
+          - url: "http://[fd22:1337:6769:30::4]:8123"
+    rosetta:
+      loadBalancer:
+        servers:
+          - url: "http://[fd22:1337:6769:30::4]:8080"
 
   middlewares:
     https-redirect:

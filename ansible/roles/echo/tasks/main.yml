@@ -1,0 +1,78 @@
+---
+- name: Require the MQTT client credentials
+  ansible.builtin.assert:
+    that:
+      - lookup('env', 'ECHO_GAIA_PASSWORD') | length > 0
+      - lookup('env', 'ECHO_ROSETTA_PASSWORD') | length > 0
+    fail_msg: "MQTT credentials are empty — run via op run --env-file=ansible/.env.op -- make ..."
+    quiet: true
+
+# the image drops to its mosquitto user (uid 1883), which must own the
+# persistence dir and be able to read the password file
+- name: Create echo project directories
+  ansible.builtin.file:
+    path: "{{ services_root }}/echo/data"
+    state: directory
+    owner: "1883"
+    group: "1883"
+    mode: "0750"
+
+- name: Deploy compose file
+  ansible.builtin.copy:
+    src: compose.yaml
+    dest: "{{ services_root }}/echo/compose.yaml"
+    mode: "0640"
+
+- name: Render environment file
+  ansible.builtin.template:
+    src: echo.env.j2
+    dest: "{{ services_root }}/echo/.env"
+    mode: "0640"
+
+- name: Deploy broker configuration
+  ansible.builtin.copy:
+    src: mosquitto.conf
+    dest: "{{ services_root }}/echo/mosquitto.conf"
+    mode: "0644"
+  register: echo_config
+
+# mosquitto only accepts hashed password files and its PBKDF2 format can't be
+# produced by Ansible, so credentials render to a plaintext staging file and
+# mosquitto_passwd hashes a copy of it in place — staging keeps this idempotent
+- name: Render MQTT credentials (plaintext staging)
+  ansible.builtin.template:
+    src: passwd.j2
+    dest: "{{ services_root }}/echo/passwd.in"
+    mode: "0600"
+  no_log: true
+  register: echo_passwd
+
+- name: Stage credentials for hashing
+  ansible.builtin.copy:
+    src: "{{ services_root }}/echo/passwd.in"
+    dest: "{{ services_root }}/echo/passwd"
+    remote_src: true
+    mode: "0600"
+  no_log: true
+  when: echo_passwd is changed
+
+- name: Hash MQTT credentials
+  ansible.builtin.command:
+    cmd: docker compose run --rm --entrypoint mosquitto_passwd echo -U /mosquitto/config/passwd
+    chdir: "{{ services_root }}/echo"
+  when: echo_passwd is changed
+  changed_when: true
+
+- name: Enforce credential file ownership
+  ansible.builtin.file:
+    path: "{{ services_root }}/echo/passwd"
+    owner: "1883"
+    group: "1883"
+    mode: "0600"
+
+- name: Deploy echo
+  community.docker.docker_compose_v2:
+    project_src: "{{ services_root }}/echo"
+    pull: missing
+    remove_orphans: true
+    recreate: "{{ 'always' if (echo_config is changed or echo_passwd is changed) else 'auto' }}"

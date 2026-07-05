@@ -1,0 +1,31 @@
+version: 4
+
+homeassistant:
+  enabled: true
+
+mqtt:
+  base_topic: rosetta
+  server: mqtt://[fd22:1337:6769:30::4]:1883
+  user: rosetta
+  password: {{ lookup('env', 'ECHO_ROSETTA_PASSWORD') }}
+
+serial:
+  # sputnik's Zigbee serial-over-TCP socket, dialed through NAT64 (IPv4-only
+  # firmware); the Z-Wave radio sits on 6638, Zigbee on 7638
+  port: tcp://[64:ff9b::10.0.80.3]:7638
+  adapter: zstack
+
+advanced:
+  # clear of the house Wi-Fi (2.4 GHz ch 6); only grazes the neighbours' ch 11
+  channel: 25
+  pan_id: 0x6769
+  ext_pan_id: [0xfd, 0x22, 0x13, 0x37, 0x67, 0x69, 0x00, 0x01]
+  network_key: [{{ lookup('env', 'ROSETTA_ZIGBEE_NETWORK_KEY') }}]
+
+frontend:
+  enabled: true
+  port: 8080
+
+# UI-owned data files, seeded empty by the role and never managed after
+devices: devices.yaml
+groups: groups.yaml

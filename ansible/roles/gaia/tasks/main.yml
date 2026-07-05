@@ -1,0 +1,66 @@
+---
+- name: Create gaia project directories
+  ansible.builtin.file:
+    path: "{{ services_root }}/gaia/config"
+    state: directory
+    mode: "0750"
+
+- name: Deploy compose file
+  ansible.builtin.copy:
+    src: compose.yaml
+    dest: "{{ services_root }}/gaia/compose.yaml"
+    mode: "0640"
+
+- name: Render environment file
+  ansible.builtin.template:
+    src: gaia.env.j2
+    dest: "{{ services_root }}/gaia/.env"
+    mode: "0640"
+
+- name: Deploy Home Assistant configuration
+  ansible.builtin.copy:
+    src: configuration.yaml
+    dest: "{{ services_root }}/gaia/config/configuration.yaml"
+    mode: "0640"
+  register: gaia_config
+
+# mirrors what Home Assistant's own onboarding would create; the UI owns
+# these files from then on, so never overwrite them
+- name: Seed UI-owned include files
+  ansible.builtin.copy:
+    content: "{{ item.content }}"
+    dest: "{{ services_root }}/gaia/config/{{ item.file }}"
+    mode: "0640"
+    force: false
+  loop:
+    - { file: automations.yaml, content: "[]\n" }
+    - { file: scripts.yaml, content: "" }
+    - { file: scenes.yaml, content: "" }
+
+- name: Install unzip (unpacks HACS below)
+  ansible.builtin.apt:
+    name: unzip
+    state: present
+
+- name: Create the HACS component directory
+  ansible.builtin.file:
+    path: "{{ services_root }}/gaia/config/custom_components/hacs"
+    state: directory
+    mode: "0750"
+
+# seed-once and unpinned: HACS updates itself from then on, so a pinned
+# version would fight the self-updater and re-render as drift every apply
+- name: Seed HACS
+  ansible.builtin.unarchive:
+    src: https://github.com/hacs/integration/releases/latest/download/hacs.zip
+    remote_src: true
+    dest: "{{ services_root }}/gaia/config/custom_components/hacs"
+    creates: "{{ services_root }}/gaia/config/custom_components/hacs/manifest.json"
+  register: gaia_hacs
+
+- name: Deploy gaia
+  community.docker.docker_compose_v2:
+    project_src: "{{ services_root }}/gaia"
+    pull: missing
+    remove_orphans: true
+    recreate: "{{ 'always' if (gaia_config is changed or gaia_hacs is changed) else 'auto' }}"
