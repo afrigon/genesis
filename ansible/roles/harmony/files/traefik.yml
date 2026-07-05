@@ -19,6 +19,9 @@ certificatesResolvers:
       email: admin@x
       storage: /acme/acme.json
       keyType: EC256
+      # atlas issues 24h certs; the default assumes ~90-day certs and checks
+      # renewals only daily — zero retry margin. This checks every 10 minutes.
+      certificatesDuration: 24
       dnsChallenge:
         provider: rfc2136
         # polaris-auth is internal-only; lego's propagation pre-check queries
