@@ -1,0 +1,19 @@
+services:
+  rosetta:
+    image: koenkk/zigbee2mqtt:2.12.1
+    container_name: rosetta
+    hostname: rosetta
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+
+networks:
+  default:
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: fd23:1337:6769:7::/64

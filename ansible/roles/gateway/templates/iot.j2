@@ -1,0 +1,30 @@
+set interfaces ethernet {{ lan_interface }} vif {{ vlans.iot }} address '{{ iot_ipv4.gateway }}/24'
+
+set service dhcp-server shared-network-name iot subnet {{ iot_ipv4.subnet }} subnet-id '{{ vlans.iot }}'
+set service dhcp-server shared-network-name iot subnet {{ iot_ipv4.subnet }} option default-router '{{ iot_ipv4.gateway }}'
+{% for ns in iot_ipv4.name_servers %}
+set service dhcp-server shared-network-name iot subnet {{ iot_ipv4.subnet }} option name-server '{{ ns }}'
+{% endfor %}
+set service dhcp-server shared-network-name iot subnet {{ iot_ipv4.subnet }} range 0 start '{{ iot_ipv4.dhcp_range_start }}'
+set service dhcp-server shared-network-name iot subnet {{ iot_ipv4.subnet }} range 0 stop '{{ iot_ipv4.dhcp_range_stop }}'
+
+set nat source rule 1200 description 'iot IPv4 to internet'
+set nat source rule 1200 outbound-interface name '{{ wan_interface }}'
+set nat source rule 1200 source address '{{ iot_ipv4.subnet }}'
+set nat source rule 1200 translation address 'masquerade'
+
+set firewall ipv4 input filter rule 1200 description 'DHCP from iot'
+set firewall ipv4 input filter rule 1200 action 'accept'
+set firewall ipv4 input filter rule 1200 inbound-interface name '{{ lan_interface }}.{{ vlans.iot }}'
+set firewall ipv4 input filter rule 1200 protocol 'udp'
+set firewall ipv4 input filter rule 1200 destination port '67'
+
+set firewall ipv4 input filter rule 1201 description 'ICMP from iot (debugging)'
+set firewall ipv4 input filter rule 1201 action 'accept'
+set firewall ipv4 input filter rule 1201 inbound-interface name '{{ lan_interface }}.{{ vlans.iot }}'
+set firewall ipv4 input filter rule 1201 protocol 'icmp'
+
+set firewall ipv4 forward filter rule 1200 description 'iot IPv4 to internet'
+set firewall ipv4 forward filter rule 1200 action 'accept'
+set firewall ipv4 forward filter rule 1200 inbound-interface name '{{ lan_interface }}.{{ vlans.iot }}'
+set firewall ipv4 forward filter rule 1200 outbound-interface name '{{ wan_interface }}'

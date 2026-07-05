@@ -39,8 +39,8 @@ All run in containers on sol's VMs: DNS + CA on `core` and apps on `services`
 | houston   | Homepage (or custom web app) | Dashboard / home page         |
 | beacon    | ntfy                         | Notifications                 |
 | gaia      | Home Assistant               | Home automation               |
-| hermes    | Mosquitto                    | MQTT broker                   |
-| soyuz     | Zigbee2MQTT                  | Zigbee bridge                 |
+| echo      | Mosquitto                    | MQTT broker                   |
+| rosetta   | Zigbee2MQTT                  | Zigbee bridge                 |
 | kepler    | n8n                          | Workflow automation           |
 | andromeda | Jellyfin                     | Media server                  |
 | nebula    | Immich                       | Photo management              |
@@ -69,6 +69,7 @@ reach it, it can only reach the internet.
 | nova    | 3D printer      | iot       |
 | aurora  | Ink printer     | iot       |
 | pioneer | Label printer   | iot       |
+| sputnik | Zigbee coordinator | dualstack |
 | photon  | Smart PDU       | dualstack |
 | eclipse | UPS (future)    | dualstack |
 | —       | Apple TV        | trusted |
@@ -87,8 +88,8 @@ reach it, it can only reach the internet.
 - **houston** — mission control, the page you glance at
 - **beacon** — broadcasts signals; notifications
 - **gaia** — the home itself
-- **hermes** — asteroid named for the messenger god; MQTT shuttles messages
-- **soyuz** — the docking craft bridging two worlds; Zigbee ↔ IP
+- **echo** — the balloon satellite that relayed any signal bounced off it; the MQTT broker
+- **rosetta** — the mission named for the stone that unlocked translation; Zigbee ↔ MQTT
 - **kepler** — orbital mechanics; scheduled workflows
 - **andromeda** — a galaxy of media
 - **nebula** — colorful clouds captured in pictures; photos
@@ -101,6 +102,7 @@ reach it, it can only reach the internet.
 - **nova** — creates new matter; 3D printer
 - **aurora** — paints color across the sky; the ink printer
 - **pioneer** — the Pioneer plaque, a tag bolted on to identify; the label printer
+- **sputnik** — the first radio transmitter in orbit; the Zigbee coordinator only speaks radio
 - **titan** — the heavyweight moon; workstation
 - **photon** — the particle that delivers the sun's energy to everything; the PDU
 - **eclipse** — satellites run on batteries while crossing the shadow; the UPS

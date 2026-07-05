@@ -1,0 +1,12 @@
+default_config:
+
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    # harmony's requests arrive SNAT'd by its docker bridge to the edge VM
+    - fd22:1337:6769:70::2
+
+# UI-owned data files, seeded empty by the role and never managed after
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml

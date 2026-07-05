@@ -55,6 +55,18 @@ dualstack_ipv4:
   dhcp_range_start: 10.0.80.100
   dhcp_range_stop: 10.0.80.199
 
+# iot (40) also carries IPv4: legacy devices can't do IPv6-only but still need
+# iot's quarantine, not dualstack (its L2 is shared with infrastructure).
+# Internet-only over NAT44; DNS to public resolvers, mirroring the RA policy.
+iot_ipv4:
+  subnet: 10.0.40.0/24
+  gateway: 10.0.40.1
+  dhcp_range_start: 10.0.40.100
+  dhcp_range_stop: 10.0.40.199
+  name_servers:
+    - 1.1.1.1
+    - 8.8.8.8
+
 # Inter-VLAN accept rules, rendered by firewall.j2
 firewall_flows:
   # management

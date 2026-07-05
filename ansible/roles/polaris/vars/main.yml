@@ -16,7 +16,13 @@ dns_zones:
     - { name: polaris,      AAAA: 'fd22:1337:6769:70::2' }
     - { name: ca,           AAAA: 'fd22:1337:6769:70::2' }
     - { name: unity,        AAAA: 'fd22:1337:6769:70::2' }
-    - { name: pioneer,      AAAA: 'fd22:1337:6769:40::100' }
+    - { name: gaia,         AAAA: 'fd22:1337:6769:70::2' }
+    - { name: rosetta,      AAAA: 'fd22:1337:6769:70::2' }
+    # sputnik is IPv4-only (SLZB-OS has IPv6 disabled); an A record is the
+    # truth, and DNS64 synthesizes the AAAA for IPv6-only clients
+    - { name: sputnik,      A: '10.0.80.3' }
+    # dual-stack: the A serves IPv4-only print tooling (iot carries IPv4)
+    - { name: pioneer,      AAAA: 'fd22:1337:6769:40::100', A: '10.0.40.3' }
   unifi:
     # http://unifi — v4-first UniFi devices need the A record
     - { name: '@',          AAAA: 'fd22:1337:6769:80::2', A: '10.0.80.2' }

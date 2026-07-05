@@ -67,7 +67,7 @@ The gateway (vanguard) is always at `{prefix}::1` on every VLAN.
 | 50   | guest      | `fd22:1337:6769:50::/64`  | Guests — Wi-Fi `x-guest` |
 | 60   | untrusted  | `fd22:1337:6769:60::/64`  | Code-execution / untrusted backends |
 | 70   | edge       | `fd22:1337:6769:70::/64`  | Edge / single client entry point (harmony) |
-| 80   | dualstack  | `fd22:1337:6769:80::/64`  | The only IPv4 VLAN — UniFi gear + operator IPv4 needs |
+| 80   | dualstack  | `fd22:1337:6769:80::/64`  | IPv4 VLAN — UniFi gear + operator IPv4 needs |
 
 ### Addressing
 
@@ -98,16 +98,20 @@ The gateway (vanguard) is always at `{prefix}::1` on every VLAN.
 - **IPv4 reachability:** NAT64 on vanguard translates `64:ff9b::/96`; polaris's
   DNS64 supplies the synthesized records. The WAN's DHCPv4 address is the
   network's only IPv4 presence.
-- **IPv4 is quarantined to the dualstack VLAN (80).** UniFi gear is IPv4-first
-  for adoption and some applications still require native IPv4, so a single VLAN
-  carries it and every other VLAN stays pure IPv6 — hop onto dualstack when you
-  need IPv4. It gets DHCPv4 (`10.0.80.0/24`) + NAT44, internet-only (intra-VLAN
-  L2 is how UniFi devices reach the controller; cross-VLAN traffic to unity is
-  IPv6), all in `roles/gateway/templates/dualstack.j2` and the `dualstack_ipv4`
-  var. vanguard also hands the VLAN a v4 DNS path (DHCPv4 name-server option →
-  `dns forwarding` on `10.0.80.1` → polaris): UniFi devices and OS Server's
-  pasta only consume IPv4 DNS. Other VLANs reach IPv4-only hosts via NAT64
-  instead.
+- **IPv4 exists on exactly two VLANs, each justified.** dualstack (80) carries
+  IPv4-first infrastructure: UniFi gear needs it for adoption and some
+  applications require native IPv4 — DHCPv4 (`10.0.80.0/24`) + NAT44,
+  internet-only (intra-VLAN L2 is how UniFi devices reach the controller;
+  cross-VLAN traffic to unity is IPv6), plus a v4 DNS path (DHCPv4 name-server
+  option → `dns forwarding` on `10.0.80.1` → polaris) because UniFi devices and
+  OS Server's pasta only consume IPv4 DNS; see `dualstack.j2` and the
+  `dualstack_ipv4` var. iot (40) carries IPv4 for legacy IoT devices that can't
+  join an IPv6-only network but need iot's quarantine rather than dualstack's
+  infrastructure L2 — DHCPv4 (`10.0.40.0/24`) + NAT44, internet-only, DNS
+  straight to public v4 resolvers (mirroring iot's RA policy, no polaris); see
+  `iot.j2` and the `iot_ipv4` var. Every other VLAN stays pure IPv6 — hop onto
+  dualstack when you need operator IPv4. Other VLANs reach IPv4-only hosts via
+  NAT64 instead.
 - **Untagged LAN traffic is intentionally dead:** bare eth2 has no prefix and
   the firewall logs and drops anything arriving on it. Do not "fix" this —
   every device must be on a tagged VLAN.
