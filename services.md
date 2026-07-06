@@ -18,6 +18,7 @@ certificate must be trusted on every managed device.
 | ceres    | NAS (dedicated machine)       | management   |
 | quasar   | Wi-Fi access point            | dualstack    |
 | nexus    | Managed switch                | dualstack    |
+| relay    | Managed switch (living room)  | dualstack    |
 | rover    | Mac mini (macOS CI runner)    | untrusted    |
 
 ## Services
@@ -102,6 +103,7 @@ reach it, it can only reach the internet.
 - **ceres** — dwarf planet in the asteroid belt, a mass of accumulated stuff; storage
 - **quasar** — the brightest radio source in the sky; the AP
 - **nexus** — the central junction where every connection converges; the switch
+- **relay** — a relay satellite exists to pass every signal onward; the switch that extends the fabric to the living room
 - **nova** — creates new matter; 3D printer
 - **aurora** — paints color across the sky; the ink printer
 - **pioneer** — the Pioneer plaque, a tag bolted on to identify; the label printer
