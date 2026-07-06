@@ -1,0 +1,75 @@
+server:
+  address: 'tcp://:9091'
+
+totp:
+  issuer: janus.x
+
+# the VM's clock is already NTP-synced by the OS, and outbound NTP from the
+# edge VLAN isn't an allowed flow — the probe would only warn on every start
+ntp:
+  disable_startup_check: true
+
+authentication_backend:
+  # no SMTP relay yet: reset links can't be delivered, and the filesystem
+  # notifier would write them where anyone shoulder-surfing the VM sees them
+  password_reset:
+    disable: true
+  ldap:
+    implementation: lldap
+    address: 'ldap://[fd22:1337:6769:70::2]:3890'
+    base_dn: 'dc=x'
+    user: 'uid=janus,ou=people,dc=x'
+
+# default-deny: every service must declare its audience below, or nobody
+# reaches it
+access_control:
+  default_policy: deny
+  rules:
+    # the forward-auth middleware sits on the whole :443 entrypoint, so the
+    # portal hostnames pass through it too and must exempt themselves
+    - domain:
+        - 'janus.x'
+        - 'auth.polaris.x'
+        - 'auth.tycho.x'
+        - 'auth.rosetta.x'
+        - 'auth.unity.x'
+        - 'auth.gaia.x'
+      policy: bypass
+    # unity and gaia enforce their own native authentication
+    - domain:
+        - 'unity.x'
+        - 'gaia.x'
+      policy: bypass
+    - domain:
+        - 'polaris.x'
+        - 'rosetta.x'
+      policy: two_factor
+      subject: 'group:admins'
+    - domain: 'tycho.x'
+      policy: two_factor
+
+# one cookie per protected domain: sessions are deliberately independent
+# (bare `x` is a public suffix, so a shared cookie is impossible anyway);
+# every domain routed on :443 must appear here — janus 401s unknown domains
+session:
+  cookies:
+    - domain: 'janus.x'
+      authelia_url: 'https://janus.x'
+    - domain: 'polaris.x'
+      authelia_url: 'https://auth.polaris.x'
+    - domain: 'tycho.x'
+      authelia_url: 'https://auth.tycho.x'
+    - domain: 'rosetta.x'
+      authelia_url: 'https://auth.rosetta.x'
+    - domain: 'unity.x'
+      authelia_url: 'https://auth.unity.x'
+    - domain: 'gaia.x'
+      authelia_url: 'https://auth.gaia.x'
+
+storage:
+  local:
+    path: /data/db.sqlite3
+
+notifier:
+  filesystem:
+    filename: /data/notification.txt

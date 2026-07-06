@@ -1,9 +1,6 @@
 # Deferred work
 
-- Buildout: janus (forward-auth on edge, currently parked), hubble (monitoring
-  on services)
-- rosetta.x (Zigbee2MQTT frontend) has no authentication — Z2M offers only a
-  static auth token; cover it with janus forward-auth when janus lands
+- Buildout: hubble (monitoring on services)
 - The https://x homepage (landing page on the edge) needs the atlas
   intermediate re-issued with the name constraint widened to also permit the
   bare `x` label
@@ -11,7 +8,16 @@
   before relying on it; bump the leaf duration if it's too lazy
 - harmony -> backend hops cross the physical trunk since the edge tier split:
   AdGuard's UI (polaris.x -> :3000) travels plaintext — give backends atlas
-  certs (re-encrypt end to end) or explicitly accept the exposure
+  certs (re-encrypt end to end) or explicitly accept the exposure; the janus
+  session cookie for polaris.x/rosetta.x now rides those plaintext hops, so a
+  trunk sniffer could replay an admin session
+- SMTP relay for janus/tycho: pick a provider, wire it as janus's notifier
+  (replacing the filesystem notifier), enable Authelia's password reset, and
+  set a strong password policy at the self-service entry points — unlocks the
+  create-account-and-send-invite-link workflow
+- Firewall: open services -> edge :443 when the first OIDC client (hubble's
+  Grafana) lands — the backend must reach janus's token endpoint through
+  harmony
 - Populate the untrusted VLAN (60): the VLAN exists on vanguard but has no
   forward rules yet — add internet-only egress, no inter-VLAN access;
   intra-VLAN isolation via Proxmox per-VM firewall (and switch port isolation

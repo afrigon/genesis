@@ -3,6 +3,11 @@ entryPoints:
     address: ":80"
   websecure:
     address: ":443"
+    http:
+      # fail-closed: every :443 route passes janus forward-auth; exemptions
+      # live in janus's access_control, never in per-router config
+      middlewares:
+        - janus-auth@file
 
 providers:
   file:

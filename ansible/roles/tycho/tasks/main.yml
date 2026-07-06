@@ -1,0 +1,86 @@
+---
+- name: Require the tycho secrets
+  ansible.builtin.assert:
+    that:
+      - lookup('env', 'TYCHO_JWT_SECRET') | length > 0
+      - lookup('env', 'TYCHO_KEY_SEED') | length > 0
+      - lookup('env', 'TYCHO_ADMIN_PASSWORD') | length > 0
+      - lookup('env', 'TYCHO_JANUS_PASSWORD') | length > 0
+      - lookup('env', 'TYCHO_XEHOS_PASSWORD') | length > 0
+      - lookup('env', 'TYCHO_XEHOS_EMAIL') | length > 0
+    fail_msg: "TYCHO_* secrets are empty — run via op run --env-file=ansible/.env.op -- make ..."
+    quiet: true
+
+- name: Create tycho bootstrap directories
+  ansible.builtin.file:
+    path: "{{ services_root }}/tycho/bootstrap/{{ item }}"
+    state: directory
+    mode: "0750"
+  loop:
+    - group-configs
+    - user-configs
+
+- name: Create tycho data directory
+  ansible.builtin.file:
+    path: "{{ services_root }}/tycho/data"
+    state: directory
+    owner: "1000"
+    group: "1000"
+    mode: "0700"
+
+- name: Deploy compose file
+  ansible.builtin.copy:
+    src: compose.yaml
+    dest: "{{ services_root }}/tycho/compose.yaml"
+    mode: "0640"
+
+- name: Render environment file (secrets from 1Password)
+  ansible.builtin.template:
+    src: tycho.env.j2
+    dest: "{{ services_root }}/tycho/.env"
+    mode: "0600"
+  no_log: true
+  register: tycho_env
+
+- name: Deploy the admins group definition
+  ansible.builtin.copy:
+    src: admins.json
+    dest: "{{ services_root }}/tycho/bootstrap/group-configs/admins.json"
+    mode: "0640"
+
+- name: Render the seeded accounts (janus bind account, operator)
+  ansible.builtin.template:
+    src: "{{ item }}.json.j2"
+    dest: "{{ services_root }}/tycho/bootstrap/user-configs/{{ item }}.json"
+    mode: "0600"
+  loop:
+    - janus
+    - xehos
+  no_log: true
+
+- name: Deploy tycho
+  community.docker.docker_compose_v2:
+    project_src: "{{ services_root }}/tycho"
+    pull: missing
+    remove_orphans: true
+    recreate: "{{ 'always' if tycho_env is changed else 'auto' }}"
+
+# Re-asserts the seeded identities on every run; DO_CLEANUP stays false so
+# accounts created through the UI (application data) are left alone.
+- name: Seed identities
+  community.docker.docker_container_exec:
+    container: tycho
+    command: /app/bootstrap.sh
+    env:
+      LLDAP_URL: http://localhost:17170
+      LLDAP_ADMIN_USERNAME: admin
+      LLDAP_ADMIN_PASSWORD: "{{ lookup('env', 'TYCHO_ADMIN_PASSWORD') }}"
+      USER_CONFIGS_DIR: /bootstrap/user-configs
+      GROUP_CONFIGS_DIR: /bootstrap/group-configs
+      DO_CLEANUP: "false"
+  register: tycho_bootstrap
+  retries: 5
+  delay: 3
+  until: tycho_bootstrap.rc == 0
+  changed_when: false
+  no_log: true

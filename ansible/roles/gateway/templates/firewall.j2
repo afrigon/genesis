@@ -9,6 +9,13 @@ set firewall ipv6 forward filter rule 10 description 'ICMPv6 is required for IPv
 set firewall ipv6 forward filter rule 10 action 'accept'
 set firewall ipv6 forward filter rule 10 protocol 'ipv6-icmp'
 
+set firewall ipv6 forward filter rule 13 description 'gaia to triton (AC infrared) over NAT64'
+set firewall ipv6 forward filter rule 13 action 'accept'
+set firewall ipv6 forward filter rule 13 inbound-interface name '{{ lan_interface }}.{{ vlans.services }}'
+set firewall ipv6 forward filter rule 13 protocol 'udp'
+set firewall ipv6 forward filter rule 13 destination address '64:ff9b::a00:2804/128'
+set firewall ipv6 forward filter rule 13 destination port '80'
+
 set firewall ipv6 forward filter rule 14 description 'trusted to iot devices over NAT64'
 set firewall ipv6 forward filter rule 14 action 'accept'
 set firewall ipv6 forward filter rule 14 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'

@@ -30,7 +30,8 @@ All run in containers on sol's VMs: DNS + CA on `core` and apps on `services`
 |-----------|------------------------------|-------------------------------|
 | harmony   | Traefik                      | Reverse proxy, TLS, routing   |
 | polaris   | AdGuard + Knot Resolver + Knot DNS | DNS: filtering, DNS64, authoritative `x` |
-| janus     | Authelia                     | SSO / authentication          |
+| janus     | Authelia                     | Authentication (forward-auth + login portals) |
+| tycho     | lldap                        | Identity directory (users, groups) |
 | atlas     | step-ca                      | Internal certificate authority |
 | airlock   | Tailscale                    | VPN / remote access (on sol)  |
 | unity     | UniFi OS Server              | Network controller (APs, switches) |
@@ -81,6 +82,7 @@ reach it, it can only reach the internet.
 - **harmony** — ISS module that connects the others; the proxy everything passes through
 - **polaris** — the star you navigate by; DNS is how everything finds everything
 - **janus** — Saturn moon, god of gates and doorways; the auth gateway
+- **tycho** — Tycho Brahe's star catalogue, positions for a thousand stars; the directory every identity is looked up in
 - **atlas** — the titan holding everything up; the root of trust
 - **airlock** — the only controlled way in from outside; VPN
 - **unity** — ISS Node 1, the module that joins all the others into one station; the controller that unifies the UniFi fabric (and it sounds like UniFi)

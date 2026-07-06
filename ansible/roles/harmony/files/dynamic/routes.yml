@@ -17,6 +17,22 @@ http:
       service: ca
       priority: 100
 
+    # one router covers the account portal (janus.x) and every per-service
+    # login portal (auth.{service}.x), so they share a single atlas cert
+    janus:
+      rule: "Host(`janus.x`) || Host(`auth.polaris.x`) || Host(`auth.tycho.x`) || Host(`auth.rosetta.x`) || Host(`auth.unity.x`) || Host(`auth.gaia.x`)"
+      entryPoints:
+        - websecure
+      service: janus
+      tls:
+        certResolver: atlas
+    tycho:
+      rule: "Host(`tycho.x`)"
+      entryPoints:
+        - websecure
+      service: tycho
+      tls:
+        certResolver: atlas
     polaris:
       rule: "Host(`polaris.x`)"
       entryPoints:
@@ -51,6 +67,14 @@ http:
       loadBalancer:
         servers:
           - url: "http://localhost"
+    janus:
+      loadBalancer:
+        servers:
+          - url: "http://[fd22:1337:6769:70::2]:9091"
+    tycho:
+      loadBalancer:
+        servers:
+          - url: "http://[fd22:1337:6769:70::2]:17170"
     ca:
       loadBalancer:
         servers:
@@ -78,6 +102,14 @@ http:
       redirectScheme:
         scheme: https
         permanent: true
+    janus-auth:
+      forwardAuth:
+        address: "http://[fd22:1337:6769:70::2]:9091/api/authz/forward-auth"
+        authResponseHeaders:
+          - Remote-User
+          - Remote-Groups
+          - Remote-Email
+          - Remote-Name
 
   serversTransports:
     # UniFi serves its own self-signed cert; pin it (a self-signed leaf is its

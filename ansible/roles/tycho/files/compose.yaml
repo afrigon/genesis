@@ -1,0 +1,33 @@
+services:
+  tycho:
+    image: lldap/lldap:v0.6.3
+    container_name: tycho
+    hostname: tycho
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+      # the daemon's ip6tables mode DNATs published-port IPv6 traffic directly
+      # to the container, and lldap's default bind is 0.0.0.0 — the v6
+      # wildcard accepts both families
+      - "LLDAP_LDAP_HOST=::"
+      - "LLDAP_HTTP_HOST=::"
+      - LLDAP_LDAP_BASE_DN=dc=x
+      - LLDAP_HTTP_URL=https://tycho.x
+      - LLDAP_JWT_SECRET=${TYCHO_JWT_SECRET}
+      - LLDAP_KEY_SEED=${TYCHO_KEY_SEED}
+      # only applied when the database is first created; later rotations
+      # happen through the UI, not here
+      - LLDAP_LDAP_USER_PASS=${TYCHO_ADMIN_PASSWORD}
+    ports:
+      - "3890:3890"
+      - "17170:17170"
+    volumes:
+      - ./data:/data
+      - ./bootstrap:/bootstrap:ro
+
+networks:
+  default:
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: fd23:1337:6769:8::/64

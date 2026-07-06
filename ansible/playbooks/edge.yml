@@ -6,4 +6,6 @@
   roles:
     - common
     - docker
+    - { role: tycho, tags: tycho }
+    - { role: janus, tags: janus }
     - { role: harmony, tags: harmony }

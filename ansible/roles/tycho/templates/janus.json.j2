@@ -1,0 +1,6 @@
+{
+  "id": "janus",
+  "email": "janus@x",
+  "password": {{ lookup('env', 'TYCHO_JANUS_PASSWORD') | to_json }},
+  "groups": ["lldap_password_manager"]
+}

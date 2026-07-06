@@ -20,6 +20,26 @@ before automation can take over).
   for client-facing name resolution, never for running-service traffic.
 - **Secure by default.** Every service must have proper authentication and a
   valid SSL/TLS certificate — no plain HTTP, no unauthenticated services.
+- **Auth is default-on (janus).** janus (Authelia, on `edge`) is attached to
+  harmony's `:443` entrypoint as forward-auth middleware, so every HTTPS route
+  passes through it fail-closed; exemptions exist only in janus's
+  `access_control`, never in per-router Traefik config. Policy is
+  default-deny with mandatory TOTP: every domain routed on `:443` must have a
+  session-cookie entry **and** an audience rule in janus's
+  `configuration.yml` — janus 401s a domain it doesn't know and denies one
+  without a rule, so adding a route without policy fails loudly. Bare `x` is
+  a public suffix, so browsers refuse a cookie shared across `{service}.x`;
+  sessions are therefore per-service by design — each protected domain gets
+  its own cookie and login portal at `auth.{service}.x` (needs its DNS
+  record, a Host clause on harmony's janus router, and a bypass rule; DNS
+  cannot wildcard these — `auth.*` is not a valid wildcard and existing
+  `{service}.x` records block `*.x` synthesis). TOTP secrets live in janus's
+  own storage, so enrollment happens once across all portals. Services with
+  strong native auth (unity, gaia) get a bypass rule instead of a double
+  wall. Identities live in tycho (lldap, on `edge`): policy is code (janus
+  config), accounts are application data (tycho's DB, managed in its UI) —
+  except the seeded ones (lldap `admin`, the `janus` bind account, the
+  operator), which Ansible re-asserts on every apply.
 - **Reverse proxy only.** Services must not be directly reachable; all client
   access goes through the reverse proxy (harmony, on the `edge` VM), which
   enforces auth, SSL, and access policy. Backends run on the `services` VM;
@@ -45,7 +65,7 @@ before automation can take over).
 | Host     | Role                              | Notes |
 |----------|-----------------------------------|-------|
 | vanguard | VyOS gateway / firewall           | 4× ethernet: eth0=WAN (modem), eth1=WAN backup (5G), eth2=LAN trunk (to nexus), eth3=configuration (direct connection for recovery/config) |
-| sol      | Proxmox VE server                 | VMs: `core` (DNS + CA), `services` (apps), `edge` (reverse proxy), `unity` (UniFi OS Server) |
+| sol      | Proxmox VE server                 | VMs: `core` (DNS + CA), `services` (apps), `edge` (reverse proxy + auth), `unity` (UniFi OS Server) |
 | nexus    | UniFi switch (USW-Pro-Max-16-PoE) | Port profiles enforce VLAN membership per port: `trunk` (vanguard uplink only), `hypervisor` (sol — VM VLANs only), per-VLAN access ports (wired clients don't tag) |
 | quasar   | UniFi AP (U7 Pro In-Wall)         | Broadcasts the SSIDs; PoE from nexus |
 | photon   | UniFi SmartPower PDU Pro          | Outlet mapping + supervised modem outlet |
@@ -202,7 +222,12 @@ name rationale — lives in `services.md`. New services are added there first.
   docker-bridge ULA is host-local and NAT'd — never on the LAN — so it sits
   outside the routed `fd22:1337:6769::/48`. Every container sets `container_name`
   matching its compose service, so it has a stable name for `docker logs`/`exec`
-  instead of Compose's `<project>-<service>-<N>`.
+  instead of Compose's `<project>-<service>-<N>`. With `ip6tables`, IPv6
+  traffic to a published port is DNAT'd straight to the container — never
+  proxied over IPv4 — so the service must bind the IPv6 wildcard (`::`); many
+  images default to `0.0.0.0` and refuse IPv6 connections while their
+  IPv4-localhost healthcheck stays green (lldap needs `LLDAP_LDAP_HOST` /
+  `LLDAP_HTTP_HOST` set to `::`).
 - **Service definition hygiene.** Beyond `container_name` (above), every Compose
   service declares a `hostname` (the bare name, matching `container_name` — e.g.
   `gaia`, `polaris-resolver`; never the `.x` domain, which resolves to harmony,
@@ -248,7 +273,9 @@ restructured as the project grows.
   are sparsely commented.
 - Use IPv6 addresses from the ULA plan above; never invent addresses outside it.
 - New hosts/services get a space-themed name, a DNS record, and an inventory
-  entry.
+  entry. Client-facing services also get a harmony route and a janus policy —
+  session-cookie entry plus audience rule, and for session-protected ones an
+  `auth.{service}.x` DNS record and a Host clause on the janus router.
 - When pinning a version (container image tag, package, schema), look up the
   actual current latest version rather than guessing from memory — they move.
 - Read facts through `ansible_facts['x']`, never the injected `ansible_x`

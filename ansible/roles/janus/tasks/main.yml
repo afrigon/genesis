@@ -1,0 +1,61 @@
+---
+- name: Require the janus secrets
+  ansible.builtin.assert:
+    that:
+      - lookup('env', 'JANUS_SESSION_SECRET') | length > 0
+      - lookup('env', 'JANUS_STORAGE_ENCRYPTION_KEY') | length > 0
+      - lookup('env', 'JANUS_RESET_JWT_SECRET') | length > 0
+      - lookup('env', 'TYCHO_JANUS_PASSWORD') | length > 0
+    fail_msg: "JANUS_* secrets are empty — run via op run --env-file=ansible/.env.op -- make ..."
+    quiet: true
+
+- name: Create janus secrets directory
+  ansible.builtin.file:
+    path: "{{ services_root }}/janus/secrets"
+    state: directory
+    mode: "0700"
+
+- name: Create janus data directory
+  ansible.builtin.file:
+    path: "{{ services_root }}/janus/data"
+    state: directory
+    mode: "0750"
+
+- name: Deploy compose file
+  ansible.builtin.copy:
+    src: compose.yaml
+    dest: "{{ services_root }}/janus/compose.yaml"
+    mode: "0640"
+
+- name: Deploy Authelia configuration
+  ansible.builtin.copy:
+    src: configuration.yml
+    dest: "{{ services_root }}/janus/configuration.yml"
+    mode: "0640"
+  register: janus_config
+
+- name: Render environment file
+  ansible.builtin.template:
+    src: janus.env.j2
+    dest: "{{ services_root }}/janus/.env"
+    mode: "0640"
+
+- name: Render secret files (from 1Password)
+  ansible.builtin.copy:
+    content: "{{ lookup('env', item.env) }}"
+    dest: "{{ services_root }}/janus/secrets/{{ item.file }}"
+    mode: "0600"
+  loop:
+    - { file: session_secret, env: JANUS_SESSION_SECRET }
+    - { file: storage_encryption_key, env: JANUS_STORAGE_ENCRYPTION_KEY }
+    - { file: reset_jwt_secret, env: JANUS_RESET_JWT_SECRET }
+    - { file: ldap_password, env: TYCHO_JANUS_PASSWORD }
+  no_log: true
+  register: janus_secrets
+
+- name: Deploy janus
+  community.docker.docker_compose_v2:
+    project_src: "{{ services_root }}/janus"
+    pull: missing
+    remove_orphans: true
+    recreate: "{{ 'always' if (janus_config is changed or janus_secrets is changed) else 'auto' }}"

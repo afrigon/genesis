@@ -1,0 +1,7 @@
+{
+  "id": "xehos",
+  "email": {{ lookup('env', 'TYCHO_XEHOS_EMAIL') | to_json }},
+  "displayName": "xehos",
+  "password": {{ lookup('env', 'TYCHO_XEHOS_PASSWORD') | to_json }},
+  "groups": ["admins", "lldap_admin"]
+}
