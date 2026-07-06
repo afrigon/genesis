@@ -69,6 +69,7 @@ reach it, it can only reach the internet.
 | nova    | 3D printer      | iot       |
 | aurora  | Ink printer     | iot       |
 | pioneer | Label printer   | iot       |
+| triton  | IR/RF blaster (Broadlink RM4 Pro, AC control) | iot |
 | sputnik | Zigbee coordinator | dualstack |
 | photon  | Smart PDU       | dualstack |
 | eclipse | UPS (future)    | dualstack |
@@ -102,6 +103,7 @@ reach it, it can only reach the internet.
 - **nova** — creates new matter; 3D printer
 - **aurora** — paints color across the sky; the ink printer
 - **pioneer** — the Pioneer plaque, a tag bolted on to identify; the label printer
+- **triton** — the coldest surface in the solar system, venting invisible geyser plumes; the blaster that runs the AC
 - **sputnik** — the first radio transmitter in orbit; the Zigbee coordinator only speaks radio
 - **titan** — the heavyweight moon; workstation
 - **photon** — the particle that delivers the sun's energy to everything; the PDU

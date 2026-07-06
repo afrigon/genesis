@@ -23,6 +23,8 @@ dns_zones:
     - { name: sputnik,      A: '10.0.80.3' }
     # dual-stack: the A serves IPv4-only print tooling (iot carries IPv4)
     - { name: pioneer,      AAAA: 'fd22:1337:6769:40::100', A: '10.0.40.3' }
+    # triton is IPv4-only (Broadlink, no IPv6 stack); DNS64 synthesizes the AAAA
+    - { name: triton,       A: '10.0.40.4' }
   unifi:
     # http://unifi — v4-first UniFi devices need the A record
     - { name: '@',          AAAA: 'fd22:1337:6769:80::2', A: '10.0.80.2' }

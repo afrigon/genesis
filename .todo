@@ -27,6 +27,11 @@
   dualstack hosts (unity, photon, the Zigbee coordinator) despite tier policy —
   Jool-translated packets skip the IPv4 forward chain, so rule 20 is the only
   gate
+- vanguard logs Jool "running out of pool4 addresses for mark 0" under load:
+  with no `translation pool` configured, NAT64 borrows the router's own
+  addresses with a narrow port range, so concurrent sessions exhaust it — give
+  nat64 rule 100 an explicit pool (address + full port range; needs thought
+  since the WAN IPv4 is DHCP-assigned)
 - Once polaris serves encrypted DNS, switch firewall forward rule 215
   (trusted -> polaris) from plaintext 53 to the TLS port (853 DoT / 443 DoH)
   and drop plaintext

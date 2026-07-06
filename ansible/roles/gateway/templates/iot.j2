@@ -7,6 +7,10 @@ set service dhcp-server shared-network-name iot subnet {{ iot_ipv4.subnet }} opt
 {% endfor %}
 set service dhcp-server shared-network-name iot subnet {{ iot_ipv4.subnet }} range 0 start '{{ iot_ipv4.dhcp_range_start }}'
 set service dhcp-server shared-network-name iot subnet {{ iot_ipv4.subnet }} range 0 stop '{{ iot_ipv4.dhcp_range_stop }}'
+{% for r in iot_ipv4.reservations %}
+set service dhcp-server shared-network-name iot subnet {{ iot_ipv4.subnet }} static-mapping {{ r.name }} mac '{{ r.mac }}'
+set service dhcp-server shared-network-name iot subnet {{ iot_ipv4.subnet }} static-mapping {{ r.name }} ip-address '{{ r.ip }}'
+{% endfor %}
 
 set nat source rule 1200 description 'iot IPv4 to internet'
 set nat source rule 1200 outbound-interface name '{{ wan_interface }}'

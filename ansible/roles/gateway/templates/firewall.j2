@@ -9,6 +9,39 @@ set firewall ipv6 forward filter rule 10 description 'ICMPv6 is required for IPv
 set firewall ipv6 forward filter rule 10 action 'accept'
 set firewall ipv6 forward filter rule 10 protocol 'ipv6-icmp'
 
+set firewall ipv6 forward filter rule 14 description 'trusted to iot devices over NAT64'
+set firewall ipv6 forward filter rule 14 action 'accept'
+set firewall ipv6 forward filter rule 14 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
+set firewall ipv6 forward filter rule 14 destination address '64:ff9b::a00:2800/120'
+
+set firewall ipv6 forward filter rule 15 description 'trusted to dualstack devices over NAT64'
+set firewall ipv6 forward filter rule 15 action 'accept'
+set firewall ipv6 forward filter rule 15 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
+set firewall ipv6 forward filter rule 15 destination address '64:ff9b::a00:5000/120'
+
+set firewall ipv6 forward filter rule 16 description 'rosetta to sputnik over NAT64'
+set firewall ipv6 forward filter rule 16 action 'accept'
+set firewall ipv6 forward filter rule 16 inbound-interface name '{{ lan_interface }}.{{ vlans.services }}'
+set firewall ipv6 forward filter rule 16 destination address '64:ff9b::a00:5003/128'
+
+set firewall ipv6 forward filter rule 17 description 'block NAT64 to embedded 10/8'
+set firewall ipv6 forward filter rule 17 action 'drop'
+set firewall ipv6 forward filter rule 17 log
+set firewall ipv6 forward filter rule 17 inbound-interface name '{{ lan_interface }}*'
+set firewall ipv6 forward filter rule 17 destination address '64:ff9b::a00:0/104'
+
+set firewall ipv6 forward filter rule 18 description 'block NAT64 to embedded 172.16/12'
+set firewall ipv6 forward filter rule 18 action 'drop'
+set firewall ipv6 forward filter rule 18 log
+set firewall ipv6 forward filter rule 18 inbound-interface name '{{ lan_interface }}*'
+set firewall ipv6 forward filter rule 18 destination address '64:ff9b::ac10:0/108'
+
+set firewall ipv6 forward filter rule 19 description 'block NAT64 to embedded 192.168/16'
+set firewall ipv6 forward filter rule 19 action 'drop'
+set firewall ipv6 forward filter rule 19 log
+set firewall ipv6 forward filter rule 19 inbound-interface name '{{ lan_interface }}*'
+set firewall ipv6 forward filter rule 19 destination address '64:ff9b::c0a8:0/112'
+
 set firewall ipv6 forward filter rule 20 description 'LAN to NAT64'
 set firewall ipv6 forward filter rule 20 action 'accept'
 set firewall ipv6 forward filter rule 20 inbound-interface name '{{ lan_interface }}*'
