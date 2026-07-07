@@ -8,6 +8,7 @@
     mode: "0750"
   loop:
     - config
+    - data
     - cache
 
 - name: Deploy compose file
@@ -23,7 +24,8 @@
     mode: "0640"
 
 # Jellyfin ships EnableIPv6=false; published ports are DNAT'd straight to the
-# container over IPv6 (ip6tables), so harmony's connections would be refused.
+# container over IPv6 (ip6tables), so harmony's connections would be refused
+# (and outbound HTTP only attempts IPv4, unreachable on this VM).
 # Seeded once — Jellyfin rewrites this file from its admin UI.
 - name: Seed the network configuration
   ansible.builtin.copy:
@@ -33,9 +35,11 @@
     group: "1000"
     mode: "0640"
     force: false
+  register: andromeda_network
 
 - name: Deploy andromeda
   community.docker.docker_compose_v2:
     project_src: "{{ services_root }}/andromeda"
     pull: missing
     remove_orphans: true
+    recreate: "{{ 'always' if andromeda_network is changed else 'auto' }}"

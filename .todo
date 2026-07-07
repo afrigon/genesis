@@ -10,7 +10,9 @@
   AdGuard's UI (polaris.x -> :3000) travels plaintext — give backends atlas
   certs (re-encrypt end to end) or explicitly accept the exposure; the janus
   session cookie for polaris.x/rosetta.x now rides those plaintext hops, so a
-  trunk sniffer could replay an admin session
+  trunk sniffer could replay an admin session. Same class: andromeda -> tycho
+  LDAP (services -> edge :3890, firewall rule 320) carries bind and user
+  credentials in plaintext ldap:// — move to LDAPS (lldap TLS + an atlas cert)
 - SMTP relay for janus/tycho: pick a provider, wire it as janus's notifier
   (replacing the filesystem notifier), enable Authelia's password reset, and
   set a strong password policy at the self-service entry points — unlocks the

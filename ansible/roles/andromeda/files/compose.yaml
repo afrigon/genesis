@@ -7,10 +7,15 @@ services:
     user: "1000:1000"
     environment:
       - TZ=${TZ}
+      # untangle the image's /config/config nesting: settings and data each
+      # get their own mount
+      - JELLYFIN_CONFIG_DIR=/config
+      - JELLYFIN_DATA_DIR=/data
     ports:
       - "8096:8096"
     volumes:
       - ./config:/config
+      - ./data:/data
       - ./cache:/cache
       - /mnt/media:/media:ro
 
