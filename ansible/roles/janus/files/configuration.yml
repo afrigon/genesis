@@ -34,11 +34,13 @@ access_control:
         - 'auth.rosetta.x'
         - 'auth.unity.x'
         - 'auth.gaia.x'
+        - 'auth.proxmox.sol.x'
       policy: bypass
-    # unity and gaia enforce their own native authentication
+    # unity, gaia, and proxmox enforce their own native authentication
     - domain:
         - 'unity.x'
         - 'gaia.x'
+        - 'proxmox.sol.x'
       policy: bypass
     - domain:
         - 'polaris.x'
@@ -65,6 +67,8 @@ session:
       authelia_url: 'https://auth.unity.x'
     - domain: 'gaia.x'
       authelia_url: 'https://auth.gaia.x'
+    - domain: 'proxmox.sol.x'
+      authelia_url: 'https://auth.proxmox.sol.x'
 
 storage:
   local:

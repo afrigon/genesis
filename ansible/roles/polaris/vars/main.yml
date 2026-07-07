@@ -20,12 +20,14 @@ dns_zones:
     - { name: rosetta,      AAAA: 'fd22:1337:6769:70::2' }
     - { name: janus,        AAAA: 'fd22:1337:6769:70::2' }
     - { name: tycho,        AAAA: 'fd22:1337:6769:70::2' }
+    - { name: proxmox.sol,  AAAA: 'fd22:1337:6769:70::2' }
     # per-service login portals (janus multi-cookie sessions)
     - { name: auth.polaris, AAAA: 'fd22:1337:6769:70::2' }
     - { name: auth.tycho,   AAAA: 'fd22:1337:6769:70::2' }
     - { name: auth.rosetta, AAAA: 'fd22:1337:6769:70::2' }
     - { name: auth.unity,   AAAA: 'fd22:1337:6769:70::2' }
     - { name: auth.gaia,    AAAA: 'fd22:1337:6769:70::2' }
+    - { name: auth.proxmox.sol, AAAA: 'fd22:1337:6769:70::2' }
     # sputnik is IPv4-only (SLZB-OS has IPv6 disabled); an A record is the
     # truth, and DNS64 synthesizes the AAAA for IPv6-only clients
     - { name: sputnik,      A: '10.0.80.3' }
