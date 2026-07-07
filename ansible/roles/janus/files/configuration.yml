@@ -35,14 +35,16 @@ access_control:
         - 'auth.unity.x'
         - 'auth.gaia.x'
         - 'auth.andromeda.x'
+        - 'auth.proxmox.sol.x'
       policy: bypass
-    # unity, gaia and andromeda enforce their own native authentication
+    # unity, gaia, proxmox and andromeda enforce their own native authentication
     # (andromeda against tycho over LDAP — its TV/phone clients can't
     # traverse forward-auth)
     - domain:
         - 'unity.x'
         - 'gaia.x'
         - 'andromeda.x'
+        - 'proxmox.sol.x'
       policy: bypass
     - domain:
         - 'polaris.x'
@@ -71,6 +73,8 @@ session:
       authelia_url: 'https://auth.gaia.x'
     - domain: 'andromeda.x'
       authelia_url: 'https://auth.andromeda.x'
+    - domain: 'proxmox.sol.x'
+      authelia_url: 'https://auth.proxmox.sol.x'
 
 storage:
   local:

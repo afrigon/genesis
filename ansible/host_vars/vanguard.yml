@@ -89,6 +89,7 @@ firewall_flows:
   - { rule: 210, description: 'trusted to edge (reverse proxy) only', source: trusted, destination: edge, protocol: tcp, ports: [80, 443] }
   - { rule: 710, description: 'edge (reverse proxy) to services backends and DNS-01', source: edge, destination: services }
   - { rule: 720, description: 'edge (reverse proxy) to unity (UniFi controller UI)', source: edge, destination: dualstack, protocol: tcp, ports: [11443] }
+  - { rule: 730, description: 'edge (reverse proxy) to proxmox UI on sol', source: edge, destination: management, protocol: tcp, ports: [8006] }
 
   # ssh
   - { rule: 230, description: 'ssh from trusted to management', source: trusted, destination: management, protocol: tcp, ports: [22] }

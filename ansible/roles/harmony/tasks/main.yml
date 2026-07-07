@@ -77,9 +77,22 @@
     fail_msg: "unity is unreachable and no certificate was previously pinned — bring unity up and re-apply edge"
     quiet: true
 
+- name: Fetch sol's pve-root-ca
+  ansible.builtin.slurp:
+    src: /etc/pve/pve-root-ca.pem
+  delegate_to: sol
+  register: harmony_proxmox_fetch
+
+- name: Pin sol's pve-root-ca
+  ansible.builtin.copy:
+    content: "{{ harmony_proxmox_fetch.content | b64decode }}"
+    dest: "{{ services_root }}/harmony/certs/pve-root-ca.crt"
+    mode: "0644"
+  register: harmony_proxmox_ca
+
 - name: Deploy harmony
   community.docker.docker_compose_v2:
     project_src: "{{ services_root }}/harmony"
     pull: missing
     remove_orphans: true
-    recreate: "{{ 'always' if (harmony_static is changed or harmony_ca is changed or harmony_unity_cert is changed) else 'auto' }}"
+    recreate: "{{ 'always' if (harmony_static is changed or harmony_ca is changed or harmony_unity_cert is changed or harmony_proxmox_ca is changed) else 'auto' }}"

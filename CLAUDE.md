@@ -35,8 +35,8 @@ before automation can take over).
   cannot wildcard these — `auth.*` is not a valid wildcard and existing
   `{service}.x` records block `*.x` synthesis). TOTP secrets live in janus's
   own storage, so enrollment happens once across all portals. Services with
-  strong native auth (unity, gaia) get a bypass rule instead of a double
-  wall. Identities live in tycho (lldap, on `edge`): policy is code (janus
+  strong native auth (unity, gaia, the Proxmox UI) get a bypass rule instead
+  of a double wall. Identities live in tycho (lldap, on `edge`): policy is code (janus
   config), accounts are application data (tycho's DB, managed in its UI) —
   except the seeded ones (lldap `admin`, the `janus` bind account, the
   operator), which Ansible re-asserts on every apply.
@@ -54,8 +54,11 @@ before automation can take over).
   terminates client TLS; because edge and services are separate VLANs, every
   harmony → backend hop hairpins through vanguard on the physical trunk, so a
   plain-HTTP backend crosses the wire in plaintext. Backends should serve TLS:
-  an atlas cert, or a pinned self-signed cert where the software resists
-  replacement (unity — re-pinned from the live endpoint on every apply).
+  an atlas cert, or a pinned cert where the software resists replacement —
+  unity's self-signed leaf (re-pinned from the live endpoint on every apply),
+  or, when the backend signs its leaf with its own private CA, that CA read
+  from its source file so leaf regeneration doesn't break the route (sol's
+  pveproxy — `pve-root-ca.pem` slurped over SSH on every apply).
 - **Declarative over imperative.** All configuration lives in this repo.
   Manual changes on devices are considered drift and should be folded back
   into code.
@@ -159,6 +162,10 @@ Everything is space themed and referenced by name via self-hosted DNS
 - **VMs** — `{vm}.{node}.x` (e.g. `core.sol.x`, `services.sol.x`), tied to the
   Proxmox node they run on.
 - **Physical hosts** — bare `{host}.x` (`vanguard.x`, `sol.x`).
+- **Host-bound UIs** — `{software}.{host}.x` (e.g. `proxmox.sol.x`):
+  proxy-fronted like a service (resolves to harmony), but the UI belongs to
+  one host and can never move, so it is named under that host instead of
+  getting a `{service}.x` name.
 
 `polaris.x` is the DNS *service*'s admin UI (routed through harmony); the
 containers live on the `core` VM (`core.sol.x`).

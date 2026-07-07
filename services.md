@@ -13,7 +13,7 @@ certificate must be trusted on every managed device.
 | Name     | What                          | VLAN         |
 |----------|-------------------------------|--------------|
 | vanguard | VyOS gateway / firewall       | all (router) |
-| sol      | Proxmox VE host               | management   |
+| sol      | Proxmox VE host — UI at `proxmox.sol.x` | management   |
 | titan    | Arch Linux workstation        | trusted      |
 | ceres    | NAS (dedicated machine)       | management   |
 | quasar   | Wi-Fi access point            | dualstack    |
