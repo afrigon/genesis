@@ -34,11 +34,15 @@ access_control:
         - 'auth.rosetta.x'
         - 'auth.unity.x'
         - 'auth.gaia.x'
+        - 'auth.andromeda.x'
       policy: bypass
-    # unity and gaia enforce their own native authentication
+    # unity, gaia and andromeda enforce their own native authentication
+    # (andromeda against tycho over LDAP — its TV/phone clients can't
+    # traverse forward-auth)
     - domain:
         - 'unity.x'
         - 'gaia.x'
+        - 'andromeda.x'
       policy: bypass
     - domain:
         - 'polaris.x'
@@ -65,6 +69,8 @@ session:
       authelia_url: 'https://auth.unity.x'
     - domain: 'gaia.x'
       authelia_url: 'https://auth.gaia.x'
+    - domain: 'andromeda.x'
+      authelia_url: 'https://auth.andromeda.x'
 
 storage:
   local:

@@ -1,0 +1,45 @@
+---
+- name: Install sshfs
+  ansible.builtin.apt:
+    name: sshfs
+    state: present
+
+- name: Create the media mount point
+  ansible.builtin.file:
+    path: /mnt/media
+    state: directory
+    mode: "0755"
+
+- name: Create root's .ssh directory
+  ansible.builtin.file:
+    path: /root/.ssh
+    state: directory
+    mode: "0700"
+
+# the public key must be authorized on the machine serving the library
+# (titan is unmanaged — the operator adds it by hand)
+- name: Generate the media mount key
+  ansible.builtin.command:
+    cmd: ssh-keygen -t ed25519 -N "" -C media@services -f /root/.ssh/media
+    creates: /root/.ssh/media
+
+- name: Deploy the mount unit
+  ansible.builtin.template:
+    src: mnt-media.mount.j2
+    dest: /etc/systemd/system/mnt-media.mount
+    mode: "0644"
+  register: media_mount_unit
+
+- name: Deploy the automount unit
+  ansible.builtin.copy:
+    src: mnt-media.automount
+    dest: /etc/systemd/system/mnt-media.automount
+    mode: "0644"
+  register: media_automount_unit
+
+- name: Enable the automount
+  ansible.builtin.systemd_service:
+    name: mnt-media.automount
+    enabled: true
+    state: "{{ 'restarted' if (media_mount_unit is changed or media_automount_unit is changed) else 'started' }}"
+    daemon_reload: "{{ media_mount_unit is changed or media_automount_unit is changed }}"

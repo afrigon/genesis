@@ -6,6 +6,7 @@
       - lookup('env', 'TYCHO_KEY_SEED') | length > 0
       - lookup('env', 'TYCHO_ADMIN_PASSWORD') | length > 0
       - lookup('env', 'TYCHO_JANUS_PASSWORD') | length > 0
+      - lookup('env', 'TYCHO_ANDROMEDA_PASSWORD') | length > 0
       - lookup('env', 'TYCHO_XEHOS_PASSWORD') | length > 0
       - lookup('env', 'TYCHO_XEHOS_EMAIL') | length > 0
     fail_msg: "TYCHO_* secrets are empty — run via op run --env-file=ansible/.env.op -- make ..."
@@ -42,19 +43,23 @@
   no_log: true
   register: tycho_env
 
-- name: Deploy the admins group definition
+- name: Deploy the group definitions
   ansible.builtin.copy:
-    src: admins.json
-    dest: "{{ services_root }}/tycho/bootstrap/group-configs/admins.json"
+    src: "{{ item }}.json"
+    dest: "{{ services_root }}/tycho/bootstrap/group-configs/{{ item }}.json"
     mode: "0640"
+  loop:
+    - admins
+    - media
 
-- name: Render the seeded accounts (janus bind account, operator)
+- name: Render the seeded accounts (janus and andromeda bind accounts, operator)
   ansible.builtin.template:
     src: "{{ item }}.json.j2"
     dest: "{{ services_root }}/tycho/bootstrap/user-configs/{{ item }}.json"
     mode: "0600"
   loop:
     - janus
+    - andromeda
     - xehos
   no_log: true
 

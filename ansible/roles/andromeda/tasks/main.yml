@@ -1,0 +1,41 @@
+---
+- name: Create andromeda project directories
+  ansible.builtin.file:
+    path: "{{ services_root }}/andromeda/{{ item }}"
+    state: directory
+    owner: "1000"
+    group: "1000"
+    mode: "0750"
+  loop:
+    - config
+    - cache
+
+- name: Deploy compose file
+  ansible.builtin.copy:
+    src: compose.yaml
+    dest: "{{ services_root }}/andromeda/compose.yaml"
+    mode: "0640"
+
+- name: Render environment file
+  ansible.builtin.template:
+    src: andromeda.env.j2
+    dest: "{{ services_root }}/andromeda/.env"
+    mode: "0640"
+
+# Jellyfin ships EnableIPv6=false; published ports are DNAT'd straight to the
+# container over IPv6 (ip6tables), so harmony's connections would be refused.
+# Seeded once — Jellyfin rewrites this file from its admin UI.
+- name: Seed the network configuration
+  ansible.builtin.copy:
+    src: network.xml
+    dest: "{{ services_root }}/andromeda/config/network.xml"
+    owner: "1000"
+    group: "1000"
+    mode: "0640"
+    force: false
+
+- name: Deploy andromeda
+  community.docker.docker_compose_v2:
+    project_src: "{{ services_root }}/andromeda"
+    pull: missing
+    remove_orphans: true

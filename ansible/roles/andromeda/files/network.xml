@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<NetworkConfiguration>
+  <EnableIPv6>true</EnableIPv6>
+</NetworkConfiguration>

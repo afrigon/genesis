@@ -77,6 +77,17 @@
 - Audit container logs across all VMs (`docker logs <name>`) for silent errors
   and warnings; fix or suppress anything that shouldn't be there.
 
+- Move /mnt/media (services VM) from the titan SSHFS mount to ceres when the
+  NAS exists; replace with the NAS mount. Cleanup list:
+  - repo: the media role and its services.yml entry, the media_source vars in
+    host_vars/services.yml
+  - titan: media-tunnel.service (/etc/systemd/system), the ~/.ssh/media-tunnel
+    keypair, and the `restrict,command="internal-sftp"` media@services line in
+    ~/.ssh/authorized_keys
+  - services VM: the `restrict,permitlisten="2222"` media-tunnel@titan line in
+    ~/.ssh/authorized_keys (manually added, not Ansible-managed) and
+    /root/.ssh/media{,.pub}
+
 ### Home Assistant
 
 - ice maker diy automation

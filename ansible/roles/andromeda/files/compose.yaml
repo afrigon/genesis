@@ -1,0 +1,22 @@
+services:
+  andromeda:
+    image: jellyfin/jellyfin:10.11.11
+    container_name: andromeda
+    hostname: andromeda
+    restart: unless-stopped
+    user: "1000:1000"
+    environment:
+      - TZ=${TZ}
+    ports:
+      - "8096:8096"
+    volumes:
+      - ./config:/config
+      - ./cache:/cache
+      - /mnt/media:/media:ro
+
+networks:
+  default:
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: fd23:1337:6769:10::/64
