@@ -8,6 +8,7 @@ dns_zones:
     - { name: vanguard,     AAAA: 'fd22:1337:6769:10::1' }
     - { name: sol,          AAAA: 'fd22:1337:6769:10::2' }
     - { name: nexus,        AAAA: 'fd22:1337:6769:10::3' }
+    - { name: titan,        AAAA: 'fd22:1337:6769:20::2' }
     - { name: core.sol,     AAAA: 'fd22:1337:6769:30::3' }
     - { name: services.sol, AAAA: 'fd22:1337:6769:30::4' }
     - { name: edge.sol,     AAAA: 'fd22:1337:6769:70::2' }

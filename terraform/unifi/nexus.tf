@@ -91,7 +91,7 @@ resource "unifi_wlan" "x" {
   pmf_mode        = "required"
 
   wlan_band  = "both"
-  wlan_bands = ["2g", "5g", "6g"]
+  wlan_bands = ["2g", "5g"]
 }
 
 resource "unifi_wlan" "x_iot" {
