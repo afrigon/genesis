@@ -60,7 +60,10 @@
 - Scope the Terraform Proxmox token to a dedicated terraform@pve user with a
   minimal custom role (privsep 1 + ACLs) instead of the root@pam privsep-0 token
 - Docker Compose service hygiene: audit every existing role so each service
-  meets the "Service definition hygiene" requirement in CLAUDE.md.
+  meets the "Service definition hygiene" requirement in CLAUDE.md, and switch
+  their networks to IPv6-only (enable_ipv4: false) per the container
+  networking convention — andromeda is the reference; each network change
+  needs a one-off `docker compose down` before the apply.
 - Retire the shared `genesis` docker network: with DNS-01 no service needs the
   ACME hairpin anymore, and the Docker unity role (its last user) is gone —
   only the `docker network create genesis` task in the docker role remains.
@@ -79,8 +82,21 @@
 - Audit container logs across all VMs (`docker logs <name>`) for silent errors
   and warnings; fix or suppress anything that shouldn't be there.
 
+- andromeda: move Sonarr to v5 when it reaches stable (its qBittorrent auth
+  fix — Sonarr/Sonarr#8316 — lives in the v5 line only), then bump
+  qBittorrent from the 5.1.4 pin back to latest.
+
+- andromeda: qBittorrent holds global seeding limits (ratio/time backstop)
+  instead of TRaSH's per-indexer seed criteria in Prowlarr — fine for public
+  trackers; if a (semi-)private tracker is ever added, set its seed
+  ratio/time in Prowlarr's indexer settings to satisfy the tracker's rules
+  (per-torrent criteria override the qBittorrent globals).
+
 - Move /mnt/media (services VM) from the titan SSHFS mount to ceres when the
-  NAS exists; replace with the NAS mount. Cleanup list:
+  NAS exists; replace with the NAS mount. Adopt TRaSH's unified /data layout
+  at the same time (downloads and library on one filesystem) so imports
+  hardlink instead of copy — impossible across the SSHFS boundary today.
+  Cleanup list:
   - repo: the media role and its services.yml entry, the media_source vars in
     host_vars/services.yml
   - titan: media-tunnel.service (/etc/systemd/system), the ~/.ssh/media-tunnel

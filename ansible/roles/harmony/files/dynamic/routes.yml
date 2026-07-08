@@ -68,6 +68,41 @@ http:
       service: andromeda
       tls:
         certResolver: atlas
+    andromeda-seerr:
+      rule: "Host(`seerr.andromeda.x`)"
+      entryPoints:
+        - websecure
+      service: andromeda-seerr
+      tls:
+        certResolver: atlas
+    andromeda-radarr:
+      rule: "Host(`radarr.andromeda.x`)"
+      entryPoints:
+        - websecure
+      service: andromeda-radarr
+      tls:
+        certResolver: atlas
+    andromeda-sonarr:
+      rule: "Host(`sonarr.andromeda.x`)"
+      entryPoints:
+        - websecure
+      service: andromeda-sonarr
+      tls:
+        certResolver: atlas
+    andromeda-prowlarr:
+      rule: "Host(`prowlarr.andromeda.x`)"
+      entryPoints:
+        - websecure
+      service: andromeda-prowlarr
+      tls:
+        certResolver: atlas
+    andromeda-qbittorrent:
+      rule: "Host(`qbittorrent.andromeda.x`)"
+      entryPoints:
+        - websecure
+      service: andromeda-qbittorrent
+      tls:
+        certResolver: atlas
     proxmox:
       rule: "Host(`proxmox.sol.x`)"
       entryPoints:
@@ -114,6 +149,26 @@ http:
       loadBalancer:
         servers:
           - url: "http://[fd22:1337:6769:30::4]:8096"
+    andromeda-seerr:
+      loadBalancer:
+        servers:
+          - url: "http://[fd22:1337:6769:30::4]:5055"
+    andromeda-radarr:
+      loadBalancer:
+        servers:
+          - url: "http://[fd22:1337:6769:30::4]:7878"
+    andromeda-sonarr:
+      loadBalancer:
+        servers:
+          - url: "http://[fd22:1337:6769:30::4]:8989"
+    andromeda-prowlarr:
+      loadBalancer:
+        servers:
+          - url: "http://[fd22:1337:6769:30::4]:9696"
+    andromeda-qbittorrent:
+      loadBalancer:
+        servers:
+          - url: "http://[fd22:1337:6769:30::4]:8090"
     proxmox:
       loadBalancer:
         servers:

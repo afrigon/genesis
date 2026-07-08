@@ -33,13 +33,22 @@ before automation can take over).
   its own cookie and login portal at `auth.{service}.x` (needs its DNS
   record, a Host clause on harmony's janus router, and a bypass rule; DNS
   cannot wildcard these — `auth.*` is not a valid wildcard and existing
-  `{service}.x` records block `*.x` synthesis). TOTP secrets live in janus's
+  `{service}.x` records block `*.x` synthesis). The public-suffix constraint
+  only bites at the bare-`x` level: a multi-service stack may route
+  components as `{component}.{service}.x` (andromeda: `radarr.andromeda.x`,
+  …) sharing a single `{service}.x` cookie and one portal at
+  `auth.{service}.x` — one TOTP login spans the stack, acceptable when every
+  component sits in the same trust tier. TOTP secrets live in janus's
   own storage, so enrollment happens once across all portals. Services with
   strong native auth (unity, gaia, the Proxmox UI) get a bypass rule instead
   of a double wall. Identities live in tycho (lldap, on `edge`): policy is code (janus
   config), accounts are application data (tycho's DB, managed in its UI) —
-  except the seeded ones (lldap `admin`, the `janus` bind account, the
-  operator), which Ansible re-asserts on every apply.
+  except the seeded ones (lldap `admin`, the `janus` and `andromeda` bind
+  accounts, the operator), which Ansible re-asserts on every apply. Services
+  whose clients can't traverse forward-auth (andromeda — TV/phone apps)
+  consume tycho over LDAP instead: a dedicated seeded bind account, and —
+  from another VM — a port-scoped firewall flow (services → edge :3890,
+  rule 320; plaintext `ldap://` exposure tracked in `.todo`).
 - **Reverse proxy only.** Services must not be directly reachable; all client
   access goes through the reverse proxy (harmony, on the `edge` VM), which
   enforces auth, SSL, and access policy. Backends run on the `services` VM;
@@ -234,7 +243,16 @@ name rationale — lives in `services.md`. New services are added there first.
   proxied over IPv4 — so the service must bind the IPv6 wildcard (`::`); many
   images default to `0.0.0.0` and refuse IPv6 connections while their
   IPv4-localhost healthcheck stays green (lldap needs `LLDAP_LDAP_HOST` /
-  `LLDAP_HTTP_HOST` set to `::`).
+  `LLDAP_HTTP_HOST` set to `::`; Jellyfin gates address families in its own
+  `network.xml` — `EnableIPv6`, seeded by the andromeda role). Compose
+  networks are **IPv6-only** (`enable_ipv4: false`): the VMs have no IPv4
+  uplink, and a dead v4 leg is worse than none — glibc's RFC 6724 policy
+  ranks IPv4 above ULA-sourced IPv6, so apps without happy-eyeballs (the
+  arrs) dial the dead leg and report the network unreachable while `curl`
+  from the same container works. Outbound IPv4-only destinations are reached
+  via DNS64/NAT64 like everywhere else. Known cosmetic cost: gluetun picks
+  VPN endpoints blind to address family and burns a retry when it draws an
+  IPv4 relay.
 - **Service definition hygiene.** Beyond `container_name` (above), every Compose
   service declares a `hostname` (the bare name, matching `container_name` — e.g.
   `gaia`, `polaris-resolver`; never the `.x` domain, which resolves to harmony,
