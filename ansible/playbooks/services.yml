@@ -9,3 +9,5 @@
     - { role: gaia, tags: gaia }
     - { role: echo, tags: echo }
     - { role: rosetta, tags: rosetta }
+    - { role: media, tags: media }
+    - { role: andromeda, tags: andromeda }

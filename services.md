@@ -44,7 +44,7 @@ All run in containers on sol's VMs: DNS + CA on `core` and apps on `services`
 | echo      | Mosquitto                    | MQTT broker                   |
 | rosetta   | Zigbee2MQTT                  | Zigbee bridge                 |
 | kepler    | n8n                          | Workflow automation           |
-| andromeda | Jellyfin                     | Media server                  |
+| andromeda | Jellyfin + servarr            | Media server                  |
 | nebula    | Immich                       | Photo management              |
 
 ### Untrusted VLAN (60)

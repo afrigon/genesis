@@ -1,0 +1,6 @@
+{
+  "id": "andromeda",
+  "email": "andromeda@x",
+  "password": {{ lookup('env', 'TYCHO_ANDROMEDA_PASSWORD') | to_json }},
+  "groups": ["lldap_strict_readonly"]
+}

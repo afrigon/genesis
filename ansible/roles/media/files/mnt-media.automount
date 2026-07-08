@@ -1,0 +1,8 @@
+[Unit]
+Description=Automount for the media library
+
+[Automount]
+Where=/mnt/media
+
+[Install]
+WantedBy=multi-user.target
