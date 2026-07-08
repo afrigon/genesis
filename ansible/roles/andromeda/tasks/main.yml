@@ -1,0 +1,76 @@
+---
+- name: Require the andromeda secrets
+  ansible.builtin.assert:
+    that:
+      - lookup('env', 'ANDROMEDA_WIREGUARD_PRIVATE_KEY') | length > 0
+      - lookup('env', 'ANDROMEDA_WIREGUARD_ADDRESSES') | length > 0
+      - lookup('env', 'ANDROMEDA_RADARR_API_KEY') | length > 0
+      - lookup('env', 'ANDROMEDA_SONARR_API_KEY') | length > 0
+      - lookup('env', 'ANDROMEDA_PROWLARR_API_KEY') | length > 0
+    fail_msg: "ANDROMEDA_* secrets are empty — run via op run --env-file=ansible/.env.op -- make ..."
+    quiet: true
+
+- name: Create andromeda project directories
+  ansible.builtin.file:
+    path: "{{ services_root }}/andromeda/{{ item }}"
+    state: directory
+    owner: "1000"
+    group: "1000"
+    mode: "0750"
+  loop:
+    - config
+    - data
+    - cache
+    - seerr
+    - radarr
+    - sonarr
+    - prowlarr
+    - qbittorrent
+    - vpn
+    - recyclarr/config
+    - recyclarr/data
+    - downloads
+
+- name: Deploy compose file
+  ansible.builtin.copy:
+    src: compose.yaml
+    dest: "{{ services_root }}/andromeda/compose.yaml"
+    mode: "0640"
+
+- name: Deploy recyclarr configuration
+  ansible.builtin.copy:
+    src: recyclarr.yml
+    dest: "{{ services_root }}/andromeda/recyclarr/config/recyclarr.yml"
+    owner: "1000"
+    group: "1000"
+    mode: "0640"
+  register: andromeda_recyclarr
+
+- name: Render environment file (secrets from 1Password)
+  ansible.builtin.template:
+    src: andromeda.env.j2
+    dest: "{{ services_root }}/andromeda/.env"
+    mode: "0600"
+  no_log: true
+  register: andromeda_env
+
+# Jellyfin ships EnableIPv6=false; published ports are DNAT'd straight to the
+# container over IPv6 (ip6tables), so harmony's connections would be refused
+# (and outbound HTTP only attempts IPv4, unreachable on this VM).
+# Seeded once — Jellyfin rewrites this file from its admin UI.
+- name: Seed the network configuration
+  ansible.builtin.copy:
+    src: network.xml
+    dest: "{{ services_root }}/andromeda/config/network.xml"
+    owner: "1000"
+    group: "1000"
+    mode: "0640"
+    force: false
+  register: andromeda_network
+
+- name: Deploy andromeda
+  community.docker.docker_compose_v2:
+    project_src: "{{ services_root }}/andromeda"
+    pull: missing
+    remove_orphans: true
+    recreate: "{{ 'always' if (andromeda_env is changed or andromeda_network is changed or andromeda_recyclarr is changed) else 'auto' }}"

@@ -104,3 +104,6 @@ firewall_flows:
   # iot
   - { rule: 220, description: 'trusted to iot devices', source: trusted, destination: iot }
   - { rule: 310, description: 'services to iot devices (home assistant, zigbee)', source: services, destination: iot }
+
+  # ldap
+  - { rule: 320, description: 'LDAP from services to tycho (jellyfin authentication)', source: services, destination: edge, protocol: tcp, ports: [3890] }

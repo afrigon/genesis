@@ -1,0 +1,173 @@
+services:
+  andromeda:
+    image: jellyfin/jellyfin:10.11.11
+    container_name: andromeda
+    hostname: andromeda
+    restart: unless-stopped
+    user: "1000:1000"
+    environment:
+      - TZ=${TZ}
+      # untangle the image's /config/config nesting: settings and data each
+      # get their own mount
+      - JELLYFIN_CONFIG_DIR=/config
+      - JELLYFIN_DATA_DIR=/data
+    ports:
+      - "8096:8096"
+    volumes:
+      - ./config:/config
+      - ./data:/data
+      - ./cache:/cache
+      - /mnt/media:/media:ro
+
+  andromeda-seerr:
+    image: fallenbagel/jellyseerr:2.7.3
+    container_name: andromeda-seerr
+    hostname: andromeda-seerr
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+    ports:
+      - "5055:5055"
+    volumes:
+      - ./seerr:/app/config
+
+  andromeda-radarr:
+    image: lscr.io/linuxserver/radarr:6.2.1
+    container_name: andromeda-radarr
+    hostname: andromeda-radarr
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+      - PUID=1000
+      - PGID=1000
+      # native login off: these UIs are only reachable through harmony, where
+      # janus enforces two_factor for admins
+      - RADARR__AUTH__METHOD=External
+      - RADARR__AUTH__APIKEY=${ANDROMEDA_RADARR_API_KEY}
+    ports:
+      - "7878:7878"
+    volumes:
+      - ./radarr:/config
+      - /mnt/media:/media
+      - ./downloads:/downloads
+
+  andromeda-sonarr:
+    image: lscr.io/linuxserver/sonarr:4.0.19
+    container_name: andromeda-sonarr
+    hostname: andromeda-sonarr
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+      - PUID=1000
+      - PGID=1000
+      - SONARR__AUTH__METHOD=External
+      - SONARR__AUTH__APIKEY=${ANDROMEDA_SONARR_API_KEY}
+    ports:
+      - "8989:8989"
+    volumes:
+      - ./sonarr:/config
+      - /mnt/media:/media
+      - ./downloads:/downloads
+
+  andromeda-prowlarr:
+    image: lscr.io/linuxserver/prowlarr:2.4.0
+    container_name: andromeda-prowlarr
+    hostname: andromeda-prowlarr
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+      - PUID=1000
+      - PGID=1000
+      - PROWLARR__AUTH__METHOD=External
+      - PROWLARR__AUTH__APIKEY=${ANDROMEDA_PROWLARR_API_KEY}
+    ports:
+      - "9696:9696"
+    volumes:
+      - ./prowlarr:/config
+
+  andromeda-flaresolverr:
+    image: flaresolverr/flaresolverr:v3.5.0
+    container_name: andromeda-flaresolverr
+    hostname: andromeda-flaresolverr
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+      - "HOST=::"
+
+  andromeda-recyclarr:
+    image: ghcr.io/recyclarr/recyclarr:8.6.0
+    container_name: andromeda-recyclarr
+    hostname: andromeda-recyclarr
+    restart: unless-stopped
+    user: "1000:1000"
+    environment:
+      - TZ=${TZ}
+      # untangle config from state (logs, cache, git clones)
+      - RECYCLARR_CONFIG_DIR=/config
+      - RECYCLARR_DATA_DIR=/data
+      - RADARR_API_KEY=${ANDROMEDA_RADARR_API_KEY}
+      - SONARR_API_KEY=${ANDROMEDA_SONARR_API_KEY}
+    volumes:
+      - ./recyclarr/config:/config
+      - ./recyclarr/data:/data
+
+  andromeda-vpn:
+    image: qmcgaw/gluetun:v3.41.1
+    container_name: andromeda-vpn
+    hostname: andromeda-vpn
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+    environment:
+      - TZ=${TZ}
+      - VPN_SERVICE_PROVIDER=mullvad
+      - VPN_TYPE=wireguard
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
+      - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES}
+      - SERVER_COUNTRIES=Canada
+      # qbittorrent's WebUI (shares this network namespace); all other inbound
+      # is dropped, and there is no peer port — Mullvad has no port forwarding
+      - FIREWALL_INPUT_PORTS=8080
+    ports:
+      # host 8080 is taken by rosetta
+      - "8090:8080"
+    volumes:
+      - ./vpn:/gluetun
+
+  andromeda-qbittorrent:
+    # 5.1.4 is the last release before qBittorrent's auth rework, which
+    # rejects the arrs' legacy Authorization header (Sonarr fix is v5-only,
+    # see Sonarr/Sonarr#8316) — bump once the arrs handle qBittorrent >= 5.2
+    image: lscr.io/linuxserver/qbittorrent:5.1.4
+    container_name: andromeda-qbittorrent
+    # no hostname: docker forbids it when sharing another container's
+    # network namespace
+    network_mode: "service:andromeda-vpn"
+    restart: unless-stopped
+    depends_on:
+      andromeda-vpn:
+        condition: service_healthy
+        restart: true
+    environment:
+      - TZ=${TZ}
+      - PUID=1000
+      - PGID=1000
+      - WEBUI_PORT=8080
+    volumes:
+      - ./qbittorrent:/config
+      - ./downloads:/downloads
+
+# IPv6-only: the VM has no IPv4 uplink, and a dead v4 leg is worse than none —
+# glibc's RFC 6724 table prefers IPv4 over ULA-sourced IPv6, so apps without
+# happy-eyeballs dial the dead leg and fail
+networks:
+  default:
+    enable_ipv4: false
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: fd23:1337:6769:10::/64

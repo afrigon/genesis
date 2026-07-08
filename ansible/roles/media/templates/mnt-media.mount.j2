@@ -1,0 +1,8 @@
+[Unit]
+Description=Media library (SSHFS through the tunnel on localhost:{{ media_source_port }})
+
+[Mount]
+What={{ media_source }}
+Where=/mnt/media
+Type=fuse.sshfs
+Options=port={{ media_source_port }},IdentityFile=/root/.ssh/media,StrictHostKeyChecking=accept-new,reconnect,ServerAliveInterval=15,ServerAliveCountMax=3,allow_other,default_permissions,uid=1000,gid=1000,_netdev

@@ -20,7 +20,7 @@ http:
     # one router covers the account portal (janus.x) and every per-service
     # login portal (auth.{service}.x), so they share a single atlas cert
     janus:
-      rule: "Host(`janus.x`) || Host(`auth.polaris.x`) || Host(`auth.tycho.x`) || Host(`auth.rosetta.x`) || Host(`auth.unity.x`) || Host(`auth.gaia.x`) || Host(`auth.proxmox.sol.x`)"
+      rule: "Host(`janus.x`) || Host(`auth.polaris.x`) || Host(`auth.tycho.x`) || Host(`auth.rosetta.x`) || Host(`auth.unity.x`) || Host(`auth.gaia.x`) || Host(`auth.andromeda.x`) || Host(`auth.proxmox.sol.x`)"
       entryPoints:
         - websecure
       service: janus
@@ -59,6 +59,48 @@ http:
       entryPoints:
         - websecure
       service: rosetta
+      tls:
+        certResolver: atlas
+    andromeda:
+      rule: "Host(`andromeda.x`)"
+      entryPoints:
+        - websecure
+      service: andromeda
+      tls:
+        certResolver: atlas
+    andromeda-seerr:
+      rule: "Host(`seerr.andromeda.x`)"
+      entryPoints:
+        - websecure
+      service: andromeda-seerr
+      tls:
+        certResolver: atlas
+    andromeda-radarr:
+      rule: "Host(`radarr.andromeda.x`)"
+      entryPoints:
+        - websecure
+      service: andromeda-radarr
+      tls:
+        certResolver: atlas
+    andromeda-sonarr:
+      rule: "Host(`sonarr.andromeda.x`)"
+      entryPoints:
+        - websecure
+      service: andromeda-sonarr
+      tls:
+        certResolver: atlas
+    andromeda-prowlarr:
+      rule: "Host(`prowlarr.andromeda.x`)"
+      entryPoints:
+        - websecure
+      service: andromeda-prowlarr
+      tls:
+        certResolver: atlas
+    andromeda-qbittorrent:
+      rule: "Host(`qbittorrent.andromeda.x`)"
+      entryPoints:
+        - websecure
+      service: andromeda-qbittorrent
       tls:
         certResolver: atlas
     proxmox:
@@ -103,6 +145,30 @@ http:
       loadBalancer:
         servers:
           - url: "http://[fd22:1337:6769:30::4]:8080"
+    andromeda:
+      loadBalancer:
+        servers:
+          - url: "http://[fd22:1337:6769:30::4]:8096"
+    andromeda-seerr:
+      loadBalancer:
+        servers:
+          - url: "http://[fd22:1337:6769:30::4]:5055"
+    andromeda-radarr:
+      loadBalancer:
+        servers:
+          - url: "http://[fd22:1337:6769:30::4]:7878"
+    andromeda-sonarr:
+      loadBalancer:
+        servers:
+          - url: "http://[fd22:1337:6769:30::4]:8989"
+    andromeda-prowlarr:
+      loadBalancer:
+        servers:
+          - url: "http://[fd22:1337:6769:30::4]:9696"
+    andromeda-qbittorrent:
+      loadBalancer:
+        servers:
+          - url: "http://[fd22:1337:6769:30::4]:8090"
     proxmox:
       loadBalancer:
         servers:

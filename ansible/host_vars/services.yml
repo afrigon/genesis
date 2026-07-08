@@ -1,2 +1,9 @@
 ---
 host_description: Services / Application services host
+
+# The media library lives on titan, which keeps a reverse tunnel open to this
+# host (ssh -R <media_source_port>:localhost:22) — titan dials in, so no
+# services→trusted flow exists and no client address appears in config.
+# Replaced by ceres when the NAS exists.
+media_source: "xehos@localhost:/mnt/data/media"
+media_source_port: 2222
