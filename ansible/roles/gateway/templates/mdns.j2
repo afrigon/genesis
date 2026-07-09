@@ -1,0 +1,4 @@
+set service mdns repeater ip-version 'ipv6'
+set service mdns repeater interface '{{ lan_interface }}.{{ vlans.trusted }}'
+set service mdns repeater interface '{{ lan_interface }}.{{ vlans.services }}'
+set service mdns repeater interface '{{ lan_interface }}.{{ vlans.iot }}'

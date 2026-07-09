@@ -107,3 +107,6 @@ firewall_flows:
 
   # ldap
   - { rule: 320, description: 'LDAP from services to tycho (jellyfin authentication)', source: services, destination: edge, protocol: tcp, ports: [3890] }
+
+  # casting
+  - { rule: 330, description: 'services to trusted devices (gaia connects after mDNS discovery)', source: services, destination: trusted }

@@ -85,7 +85,6 @@ sonarr:
           allowed: true
           until_quality: WEB 2160p
         qualities:
-          - name: Bluray-2160p
           - name: WEB 2160p
             qualities:
               - WEBDL-2160p

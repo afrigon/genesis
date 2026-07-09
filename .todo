@@ -1,3 +1,11 @@
+# Actual TODOs
+
+- figure out why service vm is so slow
+- configure CLAT on services VM
+- configure the plant monitor
+- configure the voice assistant
+- configure the google home
+
 # Deferred work
 
 - Buildout: hubble (monitoring on services)
@@ -109,9 +117,7 @@
 ### Home Assistant
 
 - ice maker diy automation
-- AC unit (broadlink) automation
 - connect non standard lights
-- figure out what to do with smart plugs
-- add to cart when nfc scan, ...?
+- setup nfc tags
 - basic scene and automations
 - label maker service

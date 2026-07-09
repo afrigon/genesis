@@ -114,6 +114,27 @@ set firewall ipv6 input filter rule 40 inbound-interface name '{{ lan_interface 
 set firewall ipv6 input filter rule 40 protocol 'udp'
 set firewall ipv6 input filter rule 40 destination port '123'
 
+set firewall ipv6 input filter rule 50 description 'mDNS to the repeater from trusted'
+set firewall ipv6 input filter rule 50 action 'accept'
+set firewall ipv6 input filter rule 50 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
+set firewall ipv6 input filter rule 50 protocol 'udp'
+set firewall ipv6 input filter rule 50 destination address 'ff02::fb'
+set firewall ipv6 input filter rule 50 destination port '5353'
+
+set firewall ipv6 input filter rule 52 description 'mDNS to the repeater from services'
+set firewall ipv6 input filter rule 52 action 'accept'
+set firewall ipv6 input filter rule 52 inbound-interface name '{{ lan_interface }}.{{ vlans.services }}'
+set firewall ipv6 input filter rule 52 protocol 'udp'
+set firewall ipv6 input filter rule 52 destination address 'ff02::fb'
+set firewall ipv6 input filter rule 52 destination port '5353'
+
+set firewall ipv6 input filter rule 54 description 'mDNS to the repeater from iot'
+set firewall ipv6 input filter rule 54 action 'accept'
+set firewall ipv6 input filter rule 54 inbound-interface name '{{ lan_interface }}.{{ vlans.iot }}'
+set firewall ipv6 input filter rule 54 protocol 'udp'
+set firewall ipv6 input filter rule 54 destination address 'ff02::fb'
+set firewall ipv6 input filter rule 54 destination port '5353'
+
 set firewall ipv4 input filter default-action 'drop'
 
 set firewall ipv4 input filter rule 20 description 'DHCP client traffic on WAN'

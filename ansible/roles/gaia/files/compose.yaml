@@ -4,18 +4,10 @@ services:
     container_name: gaia
     hostname: gaia
     restart: unless-stopped
+    stop_grace_period: 60s
+    # host networking per upstream: discovery/multicast can't traverse a bridge
+    network_mode: host
     environment:
       - TZ=${TZ}
-    ports:
-      - "8123:8123"
     volumes:
       - ./config:/config
-
-# compose-created networks are IPv4-only regardless of the daemon's IPv6
-# settings; gaia dials iot devices (VLAN 40) over IPv6
-networks:
-  default:
-    enable_ipv6: true
-    ipam:
-      config:
-        - subnet: fd23:1337:6769:5::/64

@@ -37,15 +37,16 @@ access_control:
         - 'auth.andromeda.x'
         - 'auth.proxmox.sol.x'
       policy: bypass
-    # unity, gaia, proxmox and andromeda enforce their own native authentication
-    # (andromeda against tycho over LDAP — its TV/phone clients can't
-    # traverse forward-auth; seerr logs in with andromeda accounts)
+    # unity, gaia, proxmox, andromeda and qbittorrent enforce their own native
+    # authentication (andromeda against tycho over LDAP — its TV/phone clients
+    # can't traverse forward-auth; seerr logs in with andromeda accounts)
     - domain:
         - 'unity.x'
         - 'gaia.x'
         - 'andromeda.x'
         - 'proxmox.sol.x'
         - 'seerr.andromeda.x'
+        - 'qbittorrent.andromeda.x'
       policy: bypass
     - domain:
         - 'polaris.x'
@@ -53,7 +54,6 @@ access_control:
         - 'radarr.andromeda.x'
         - 'sonarr.andromeda.x'
         - 'prowlarr.andromeda.x'
-        - 'qbittorrent.andromeda.x'
       policy: two_factor
       subject: 'group:admins'
     - domain: 'tycho.x'
@@ -63,6 +63,8 @@ access_control:
 # (bare `x` is a public suffix, so a shared cookie is impossible anyway);
 # every domain routed on :443 must appear here — janus 401s unknown domains
 session:
+  expiration: '7d'
+  inactivity: '7d'
   cookies:
     - domain: 'janus.x'
       authelia_url: 'https://janus.x'
