@@ -7,3 +7,14 @@ host_description: Services / Application services host
 # Replaced by ceres when the NAS exists.
 media_source: "xehos@localhost:/mnt/data/media"
 media_source_port: 2222
+
+# 464XLAT (clat role): tayga gives this host a local IPv4 stack so v4-only
+# software works — v4 literals translate into the NAT64 prefix (vanguard
+# translates onward). clat_mappings aliases v6-only devices into v4 for
+# v4-only client libraries; empty until a device needs one. RFC 6598 CGN
+# space, host-local only: nothing in this range ever crosses the wire.
+clat_interface: ens18
+clat_tayga_ipv4: 100.64.0.1
+clat_host_ipv4: 100.64.0.2
+clat_host_ipv6: fd22:1337:6769:30::464
+clat_mappings: []

@@ -1,0 +1,13 @@
+services:
+  lyra:
+    image: ghcr.io/music-assistant/server:2.9.5
+    container_name: lyra
+    hostname: lyra
+    restart: unless-stopped
+    # host networking per upstream: mDNS/uPnP player discovery and streaming
+    # protocols (AirPlay's random callback ports) can't traverse a bridge
+    network_mode: host
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - ./data:/data

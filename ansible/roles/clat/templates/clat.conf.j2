@@ -1,0 +1,21 @@
+[Unit]
+After=docker.service
+
+[Service]
+# translation adds 20 bytes of IPv6 header, so the v4 side caps at 1480
+ExecStartPost=/usr/bin/ip link set dev clat0 up mtu 1480
+ExecStartPost=/usr/bin/ip addr replace {{ clat_host_ipv4 }}/24 dev clat0
+ExecStartPost=/usr/bin/ip route replace default dev clat0
+ExecStartPost=/usr/bin/ip -6 route replace {{ clat_host_ipv6 }}/128 dev clat0
+ExecStartPost=/usr/bin/ip -6 neigh replace proxy {{ clat_host_ipv6 }} dev {{ clat_interface }}
+# docker (ip6tables mode) default-drops the FORWARD chain, which the
+# clat0 <-> LAN path traverses; DOCKER-USER is the chain docker reserves
+# for admin rules and never flushes
+ExecStartPre=-/usr/sbin/ip6tables -D DOCKER-USER -i clat0 -j ACCEPT
+ExecStartPre=-/usr/sbin/ip6tables -D DOCKER-USER -o clat0 -j ACCEPT
+ExecStartPre=-/usr/sbin/iptables -D DOCKER-USER -i clat0 -j ACCEPT
+ExecStartPre=-/usr/sbin/iptables -D DOCKER-USER -o clat0 -j ACCEPT
+ExecStartPost=/usr/sbin/ip6tables -I DOCKER-USER -i clat0 -j ACCEPT
+ExecStartPost=/usr/sbin/ip6tables -I DOCKER-USER -o clat0 -j ACCEPT
+ExecStartPost=/usr/sbin/iptables -I DOCKER-USER -i clat0 -j ACCEPT
+ExecStartPost=/usr/sbin/iptables -I DOCKER-USER -o clat0 -j ACCEPT

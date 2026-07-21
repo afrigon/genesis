@@ -6,8 +6,11 @@
   roles:
     - common
     - docker
+    - { role: clat, tags: clat }
     - { role: gaia, tags: gaia }
     - { role: echo, tags: echo }
     - { role: rosetta, tags: rosetta }
+    - { role: capcom, tags: capcom }
+    - { role: lyra, tags: lyra }
     - { role: media, tags: media }
     - { role: andromeda, tags: andromeda }

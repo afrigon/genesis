@@ -3,7 +3,7 @@ set service router-advert interface {{ lan_interface }}.{{ id }} prefix ::/64
 {% if name in static_vlans %}
 set service router-advert interface {{ lan_interface }}.{{ id }} prefix {{ ula_prefix }}:{{ id }}::/64 no-autonomous-flag
 {% endif %}
-set service router-advert interface {{ lan_interface }}.{{ id }} nat64prefix '64:ff9b::/96'
+set service router-advert interface {{ lan_interface }}.{{ id }} nat64prefix '64:ff9b:1::/96'
 {% if name in polaris_vlans %}
 set service router-advert interface {{ lan_interface }}.{{ id }} name-server '{{ polaris_address }}'
 {% else %}

@@ -1,0 +1,36 @@
+services:
+  capcom-whisper:
+    image: rhasspy/wyoming-whisper:3.5.0
+    container_name: capcom-whisper
+    hostname: capcom-whisper
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+    # run.sh appends these after its own flags; the repeated --uri wins,
+    # rebinding from the default 0.0.0.0 to :: (ip6tables DNAT needs it)
+    command: --uri tcp://[::]:10300 --model small-int8 --language en
+    ports:
+      - "10300:10300"
+    volumes:
+      - ./whisper:/data
+
+  capcom-piper:
+    image: rhasspy/wyoming-piper:2.2.2
+    container_name: capcom-piper
+    hostname: capcom-piper
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+    command: --uri tcp://[::]:10200 --voice en_US-lessac-medium
+    ports:
+      - "10200:10200"
+    volumes:
+      - ./piper:/data
+
+networks:
+  default:
+    enable_ipv4: false
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: fd23:1337:6769:11::/64

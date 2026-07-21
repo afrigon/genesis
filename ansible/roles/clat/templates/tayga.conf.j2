@@ -1,0 +1,11 @@
+tun-device clat0
+data-dir /var/spool/tayga
+
+ipv4-addr {{ clat_tayga_ipv4 }}
+
+prefix 64:ff9b:1::/96
+
+map {{ clat_host_ipv4 }} {{ clat_host_ipv6 }}
+{% for mapping in clat_mappings | default([]) %}
+map {{ mapping.ipv4 }} {{ mapping.ipv6 }}
+{% endfor %}

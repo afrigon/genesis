@@ -5,9 +5,11 @@ network:
 
 # Synthesize A -> AAAA into the NAT64 prefix. RFC 6147: skipped automatically
 # for names that already return AAAA, so the local zones below are untouched.
+# The RFC 8215 local-use prefix, not the well-known 64:ff9b::/96: the WKP
+# must not embed private IPv4 (RFC 6052), and translators enforce it.
 dns64:
   enable: true
-  prefix: 64:ff9b::/96
+  prefix: 64:ff9b:1::/96
 
 forward:
 {% for zone in dns_zones %}

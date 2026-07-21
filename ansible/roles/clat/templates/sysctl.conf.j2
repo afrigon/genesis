@@ -1,0 +1,7 @@
+# forwarding is required to route between clat0 and the LAN; it also makes
+# the kernel ignore RAs unless accept_ra=2, which would silently drop the
+# SLAAC GUA. proxy_ndp lets the host answer neighbor discovery for the
+# clat address, which lives behind the tun instead of on the interface.
+net.ipv6.conf.all.forwarding = 1
+net.ipv6.conf.{{ clat_interface }}.accept_ra = 2
+net.ipv6.conf.{{ clat_interface }}.proxy_ndp = 1

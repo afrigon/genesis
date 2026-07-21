@@ -113,7 +113,7 @@ The gateway (vanguard) is always at `{prefix}::1` on every VLAN.
 - **DNS:** polaris is a three-container stack on the `core` VM (`30::3`):
   `polaris-filter` (AdGuard, host network — needs real client source IPs) →
   `polaris-resolver` (Knot Resolver: forwarding + DNS64, synthesizing
-  IPv4-only names into `64:ff9b::/96`; Cloudflare/Google upstreams) →
+  IPv4-only names into `64:ff9b:1::/96`; Cloudflare/Google upstreams) →
   `polaris-auth` (Knot DNS: authoritative for the `x` and `unifi` zones from
   `dns_zones`, plus RFC2136 DDNS on :5354 for ACME). Clients are pointed at
   polaris via RA RDNSS, **polaris-only** on trusted/management/services/edge —
@@ -127,10 +127,37 @@ The gateway (vanguard) is always at `{prefix}::1` on every VLAN.
   which also avoids a DNS bootstrap loop for sol / the core VM when polaris is
   down. vanguard keeps its own upstreams and never depends on a service behind
   it.
-- **IPv4 reachability:** NAT64 on vanguard translates `64:ff9b::/96`; polaris's
-  DNS64 supplies the synthesized records. The WAN's DHCPv4 address is the
+- **IPv4 reachability:** NAT64 on vanguard translates `64:ff9b:1::/96` — the
+  RFC 8215 local-use prefix, because the well-known `64:ff9b::/96` must not
+  embed private IPv4 and translators (tayga) enforce that; polaris's DNS64
+  supplies the synthesized records.
+- **IPv4-only software — 464XLAT (`clat` role).** When software demands IPv4
+  (a v4-only client library, HA zeroconf's v4 requirement), the answer is the
+  CLAT on the services VM — never real IPv4 on a VLAN or VM. tayga gives the
+  host a local v4 stack (`100.64.0.0/24`, RFC 6598 space, host-local: nothing
+  in it ever crosses the wire) and statelessly translates it to IPv6. Two
+  paths: a dialed v4 literal is embedded in the NAT64 prefix and crosses
+  vanguard like any translated traffic (the `64:ff9b:1::` firewall rules
+  apply); `clat_mappings` (`host_vars/services.yml`) aliases a v6-only device
+  into v4 for v4-only libraries — that translation happens on the VM and
+  crosses the network as native IPv6, no NAT64 involved. Containers need
+  nothing: host-network ones see the v4 stack directly, bridged ones reach it
+  through the host's routing. Gotchas the role handles (do not re-learn
+  these): the VM's translation address (`…:30::464`) lives behind the tun, so
+  the host answers neighbor discovery for it via proxy-ND; translation
+  requires IPv6 forwarding, which makes the kernel discard RAs — and lose the
+  SLAAC GUA — unless `accept_ra=2`; docker's ip6tables default-drops the
+  clat0 ↔ LAN forward path, so the tayga unit inserts accepts into
+  `DOCKER-USER` (the chain docker never flushes) and orders itself
+  `After=docker.service`. Point integrations at v4 devices by IP literal, not
+  DNS name — the name resolves to a synthesized AAAA, which a v4-only library
+  can't dial. The WAN's DHCPv4 address is the
   network's only IPv4 presence.
-- **IPv4 exists on exactly two VLANs, each justified.** dualstack (80) carries
+- **IPv4 exists on exactly three VLANs, each justified.** trusted (20)
+  carries reservation-only IPv4: the DHCPv4 scope has no pool, so ordinary
+  clients stay pure IPv6 — a lease is an explicit per-device grant for
+  trusted-class devices whose control software is IPv4-only (telstar/pyatv);
+  see `trusted.j2` and the `trusted_ipv4` var. dualstack (80) carries
   IPv4-first infrastructure: UniFi gear needs it for adoption and some
   applications require native IPv4 — DHCPv4 (`10.0.80.0/24`) + NAT44,
   internet-only (intra-VLAN L2 is how UniFi devices reach the controller;

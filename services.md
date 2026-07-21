@@ -43,6 +43,8 @@ All run in containers on sol's VMs: DNS + CA on `core` and apps on `services`
 | gaia      | Home Assistant               | Home automation               |
 | echo      | Mosquitto                    | MQTT broker                   |
 | rosetta   | Zigbee2MQTT                  | Zigbee bridge                 |
+| capcom    | Whisper + Piper (Wyoming)    | Voice: speech-to-text / text-to-speech for gaia |
+| lyra      | Music Assistant              | Music library / multi-room streaming |
 | kepler    | n8n                          | Workflow automation           |
 | andromeda | Jellyfin + servarr            | Media server                  |
 | nebula    | Immich                       | Photo management              |
@@ -75,7 +77,7 @@ reach it, it can only reach the internet.
 | sputnik | Zigbee coordinator | dualstack |
 | photon  | Smart PDU       | dualstack |
 | eclipse | UPS (future)    | dualstack |
-| —       | Apple TV        | trusted |
+| telstar | Apple TV        | trusted |
 | —       | Chromecast      | trusted |
 
 ## Name rationale
@@ -94,6 +96,8 @@ reach it, it can only reach the internet.
 - **gaia** — the home itself
 - **echo** — the balloon satellite that relayed any signal bounced off it; the MQTT broker
 - **rosetta** — the mission named for the stone that unlocked translation; Zigbee ↔ MQTT
+- **capcom** — the voice of mission control, the one role that both listens and speaks to the crew; speech ↔ text
+- **lyra** — Orpheus's lyre drawn in the sky, the instrument among the constellations; music
 - **kepler** — orbital mechanics; scheduled workflows
 - **andromeda** — a galaxy of media
 - **nebula** — colorful clouds captured in pictures; photos
@@ -109,6 +113,7 @@ reach it, it can only reach the internet.
 - **pioneer** — the Pioneer plaque, a tag bolted on to identify; the label printer
 - **triton** — the coldest surface in the solar system, venting invisible geyser plumes; the blaster that runs the AC
 - **sputnik** — the first radio transmitter in orbit; the Zigbee coordinator only speaks radio
+- **telstar** — the satellite that relayed the first live transatlantic television broadcast; the box that relays television to our screen
 - **titan** — the heavyweight moon; workstation
 - **photon** — the particle that delivers the sun's energy to everything; the PDU
 - **eclipse** — satellites run on batteries while crossing the shadow; the UPS

@@ -111,6 +111,20 @@ services:
       - ./recyclarr/config:/config
       - ./recyclarr/data:/data
 
+  andromeda-cleanuparr:
+    image: ghcr.io/cleanuparr/cleanuparr:2.9.16
+    container_name: andromeda-cleanuparr
+    hostname: andromeda-cleanuparr
+    restart: unless-stopped
+    user: "1000:1000"
+    environment:
+      - TZ=${TZ}
+    ports:
+      - "11011:11011"
+    volumes:
+      - ./cleanuparr:/config
+      - ./downloads:/downloads
+
   andromeda-vpn:
     image: qmcgaw/gluetun:v3.41.1
     container_name: andromeda-vpn

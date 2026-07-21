@@ -1,0 +1,29 @@
+set interfaces ethernet {{ lan_interface }} vif {{ vlans.trusted }} address '{{ trusted_ipv4.gateway }}/24'
+
+set service dhcp-server shared-network-name trusted subnet {{ trusted_ipv4.subnet }} subnet-id '{{ vlans.trusted }}'
+set service dhcp-server shared-network-name trusted subnet {{ trusted_ipv4.subnet }} option default-router '{{ trusted_ipv4.gateway }}'
+{% for r in trusted_ipv4.reservations %}
+set service dhcp-server shared-network-name trusted subnet {{ trusted_ipv4.subnet }} static-mapping {{ r.name }} mac '{{ r.mac }}'
+set service dhcp-server shared-network-name trusted subnet {{ trusted_ipv4.subnet }} static-mapping {{ r.name }} ip-address '{{ r.ip }}'
+{% endfor %}
+
+set nat source rule 1300 description 'trusted IPv4 to internet'
+set nat source rule 1300 outbound-interface name '{{ wan_interface }}'
+set nat source rule 1300 source address '{{ trusted_ipv4.subnet }}'
+set nat source rule 1300 translation address 'masquerade'
+
+set firewall ipv4 input filter rule 1300 description 'DHCP from trusted'
+set firewall ipv4 input filter rule 1300 action 'accept'
+set firewall ipv4 input filter rule 1300 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
+set firewall ipv4 input filter rule 1300 protocol 'udp'
+set firewall ipv4 input filter rule 1300 destination port '67'
+
+set firewall ipv4 input filter rule 1301 description 'ICMP from trusted (debugging)'
+set firewall ipv4 input filter rule 1301 action 'accept'
+set firewall ipv4 input filter rule 1301 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
+set firewall ipv4 input filter rule 1301 protocol 'icmp'
+
+set firewall ipv4 forward filter rule 1300 description 'trusted IPv4 to internet'
+set firewall ipv4 forward filter rule 1300 action 'accept'
+set firewall ipv4 forward filter rule 1300 inbound-interface name '{{ lan_interface }}.{{ vlans.trusted }}'
+set firewall ipv4 forward filter rule 1300 outbound-interface name '{{ wan_interface }}'

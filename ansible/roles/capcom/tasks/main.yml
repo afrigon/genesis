@@ -1,0 +1,27 @@
+---
+- name: Create capcom project directories
+  ansible.builtin.file:
+    path: "{{ services_root }}/capcom/{{ item }}"
+    state: directory
+    mode: "0750"
+  loop:
+    - whisper
+    - piper
+
+- name: Deploy compose file
+  ansible.builtin.copy:
+    src: compose.yaml
+    dest: "{{ services_root }}/capcom/compose.yaml"
+    mode: "0640"
+
+- name: Render environment file
+  ansible.builtin.template:
+    src: capcom.env.j2
+    dest: "{{ services_root }}/capcom/.env"
+    mode: "0640"
+
+- name: Deploy capcom
+  community.docker.docker_compose_v2:
+    project_src: "{{ services_root }}/capcom"
+    pull: missing
+    remove_orphans: true

@@ -20,7 +20,7 @@ http:
     # one router covers the account portal (janus.x) and every per-service
     # login portal (auth.{service}.x), so they share a single atlas cert
     janus:
-      rule: "Host(`janus.x`) || Host(`auth.polaris.x`) || Host(`auth.tycho.x`) || Host(`auth.rosetta.x`) || Host(`auth.unity.x`) || Host(`auth.gaia.x`) || Host(`auth.andromeda.x`) || Host(`auth.proxmox.sol.x`)"
+      rule: "Host(`janus.x`) || Host(`auth.polaris.x`) || Host(`auth.tycho.x`) || Host(`auth.rosetta.x`) || Host(`auth.lyra.x`) || Host(`auth.unity.x`) || Host(`auth.gaia.x`) || Host(`auth.andromeda.x`) || Host(`auth.proxmox.sol.x`)"
       entryPoints:
         - websecure
       service: janus
@@ -59,6 +59,13 @@ http:
       entryPoints:
         - websecure
       service: rosetta
+      tls:
+        certResolver: atlas
+    lyra:
+      rule: "Host(`lyra.x`)"
+      entryPoints:
+        - websecure
+      service: lyra
       tls:
         certResolver: atlas
     andromeda:
@@ -103,6 +110,13 @@ http:
       service: andromeda-qbittorrent
       tls:
         certResolver: atlas
+    andromeda-cleanuparr:
+      rule: "Host(`cleanuparr.andromeda.x`)"
+      entryPoints:
+        - websecure
+      service: andromeda-cleanuparr
+      tls:
+        certResolver: atlas
     proxmox:
       rule: "Host(`proxmox.sol.x`)"
       entryPoints:
@@ -145,6 +159,10 @@ http:
       loadBalancer:
         servers:
           - url: "http://[fd22:1337:6769:30::4]:8080"
+    lyra:
+      loadBalancer:
+        servers:
+          - url: "http://[fd22:1337:6769:30::4]:8095"
     andromeda:
       loadBalancer:
         servers:
@@ -169,6 +187,10 @@ http:
       loadBalancer:
         servers:
           - url: "http://[fd22:1337:6769:30::4]:8090"
+    andromeda-cleanuparr:
+      loadBalancer:
+        servers:
+          - url: "http://[fd22:1337:6769:30::4]:11011"
     proxmox:
       loadBalancer:
         servers:
@@ -183,6 +205,11 @@ http:
     janus-auth:
       forwardAuth:
         address: "http://[fd22:1337:6769:70::2]:9091/api/authz/forward-auth"
+        # safe to trust: the entrypoints have no forwardedHeaders.trustedIPs,
+        # so Traefik overwrites client-supplied X-Forwarded-* before this runs
+        trustForwardHeader: true
+        # janus only ever answers 401s and portal redirects
+        maxResponseBodySize: 1048576
         authResponseHeaders:
           - Remote-User
           - Remote-Groups

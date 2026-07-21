@@ -2,7 +2,7 @@ set interfaces ethernet {{ config_interface }} description 'CONFIG (recovery acc
 set interfaces ethernet {{ config_interface }} address '{{ ula_prefix }}::1/64'
 
 set service router-advert interface {{ config_interface }} prefix ::/64
-set service router-advert interface {{ config_interface }} nat64prefix '64:ff9b::/96'
+set service router-advert interface {{ config_interface }} nat64prefix '64:ff9b:1::/96'
 set service router-advert interface {{ config_interface }} name-server '{{ polaris_address }}'
 
 set interfaces ethernet {{ config_interface }} address '192.168.1.1/24'

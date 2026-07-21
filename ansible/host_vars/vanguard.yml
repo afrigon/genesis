@@ -70,6 +70,18 @@ iot_ipv4:
   # so they can carry a DNS name
   reservations:
     - { name: triton, mac: '34:8e:89:2e:23:34', ip: 10.0.40.4 }
+    - { name: plant-sensor, mac: 'f0:f5:bd:f7:51:2c', ip: 10.0.40.11 }
+
+# trusted (20) carries reservation-only IPv4: no pool, so ordinary clients
+# stay pure IPv6 — a lease is an explicit per-device grant for trusted-class
+# devices whose control software is IPv4-only (pyatv). No name-server option:
+# these devices keep their RA-provided v6 DNS (polaris); the v4 exists so the
+# CLAT can reach them, and NAT64's on-link source passes mDNS scan checks.
+trusted_ipv4:
+  subnet: 10.0.20.0/24
+  gateway: 10.0.20.1
+  reservations:
+    - { name: telstar, mac: '04:4b:ed:9d:1f:5d', ip: 10.0.20.12 }
 
 # Inter-VLAN accept rules, rendered by firewall.j2
 firewall_flows:
@@ -104,9 +116,14 @@ firewall_flows:
   # iot
   - { rule: 220, description: 'trusted to iot devices', source: trusted, destination: iot }
   - { rule: 310, description: 'services to iot devices (home assistant, zigbee)', source: services, destination: iot }
+  - { rule: 410, description: 'iot to home assistant (gaia) http', source: iot, destination: services, protocol: tcp, ports: [8123] }
 
   # ldap
   - { rule: 320, description: 'LDAP from services to tycho (jellyfin authentication)', source: services, destination: edge, protocol: tcp, ports: [3890] }
 
   # casting
   - { rule: 330, description: 'services to trusted devices (gaia connects after mDNS discovery)', source: services, destination: trusted }
+  # pull-based players (chromecast) fetch the audio from lyra's stream server;
+  # port-scoped on purpose — AirPlay's random-port control callbacks stay
+  # blocked rather than opening trusted to every backend port
+  - { rule: 260, description: 'trusted players pull music assistant (lyra) streams', source: trusted, destination: services, protocol: tcp, ports: [8097] }

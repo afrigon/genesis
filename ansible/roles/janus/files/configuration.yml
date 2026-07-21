@@ -32,6 +32,7 @@ access_control:
         - 'auth.polaris.x'
         - 'auth.tycho.x'
         - 'auth.rosetta.x'
+        - 'auth.lyra.x'
         - 'auth.unity.x'
         - 'auth.gaia.x'
         - 'auth.andromeda.x'
@@ -54,9 +55,14 @@ access_control:
         - 'radarr.andromeda.x'
         - 'sonarr.andromeda.x'
         - 'prowlarr.andromeda.x'
+        - 'cleanuparr.andromeda.x'
       policy: two_factor
       subject: 'group:admins'
     - domain: 'tycho.x'
+      policy: two_factor
+    # no subject restriction: any tycho account may use the music UI (Music
+    # Assistant has no user roles, so everyone sees the full UI)
+    - domain: 'lyra.x'
       policy: two_factor
 
 # one cookie per protected domain: sessions are deliberately independent
@@ -74,6 +80,8 @@ session:
       authelia_url: 'https://auth.tycho.x'
     - domain: 'rosetta.x'
       authelia_url: 'https://auth.rosetta.x'
+    - domain: 'lyra.x'
+      authelia_url: 'https://auth.lyra.x'
     - domain: 'unity.x'
       authelia_url: 'https://auth.unity.x'
     - domain: 'gaia.x'
