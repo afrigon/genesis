@@ -21,6 +21,7 @@ dns_zones:
     - { name: andromeda,    AAAA: 'fd22:1337:6769:70::2' }
     - { name: seerr.andromeda, AAAA: 'fd22:1337:6769:70::2' }
     - { name: radarr.andromeda, AAAA: 'fd22:1337:6769:70::2' }
+    - { name: radarr-fr.andromeda, AAAA: 'fd22:1337:6769:70::2' }
     - { name: sonarr.andromeda, AAAA: 'fd22:1337:6769:70::2' }
     - { name: prowlarr.andromeda, AAAA: 'fd22:1337:6769:70::2' }
     - { name: qbittorrent.andromeda, AAAA: 'fd22:1337:6769:70::2' }

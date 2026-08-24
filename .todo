@@ -93,6 +93,11 @@
   fix — Sonarr/Sonarr#8316 — lives in the v5 line only), then bump
   qBittorrent from the 5.1.4 pin back to latest.
 
+- andromeda: french family copies (radarr-fr, /media/movies-fr) are deleted by
+  hand in the radarr-fr UI (movie + file) once watched; if that becomes a
+  chore, automate with janitorr (purges arr-managed media based on jellyfin
+  watch state / age)
+
 - andromeda: qBittorrent holds global seeding limits (ratio/time backstop)
   instead of TRaSH's per-indexer seed criteria in Prowlarr — fine for public
   trackers; if a (semi-)private tracker is ever added, set its seed

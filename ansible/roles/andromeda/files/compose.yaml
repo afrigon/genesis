@@ -51,6 +51,28 @@ services:
       - /mnt/media:/media
       - ./downloads:/downloads
 
+  # radarr keeps exactly one file per movie, so a french grab in the main
+  # instance would replace the library's copy — this instance owns
+  # /media/movies-fr for disposable french versions instead
+  andromeda-radarr-fr:
+    image: lscr.io/linuxserver/radarr:6.2.1
+    container_name: andromeda-radarr-fr
+    hostname: andromeda-radarr-fr
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+      - PUID=1000
+      - PGID=1000
+      - RADARR__AUTH__METHOD=External
+      - RADARR__AUTH__APIKEY=${ANDROMEDA_RADARR_FR_API_KEY}
+    ports:
+      # 7878 is taken by andromeda-radarr
+      - "7879:7878"
+    volumes:
+      - ./radarr-fr:/config
+      - /mnt/media:/media
+      - ./downloads:/downloads
+
   andromeda-sonarr:
     image: lscr.io/linuxserver/sonarr:4.0.19
     container_name: andromeda-sonarr
@@ -106,6 +128,7 @@ services:
       - RECYCLARR_CONFIG_DIR=/config
       - RECYCLARR_DATA_DIR=/data
       - RADARR_API_KEY=${ANDROMEDA_RADARR_API_KEY}
+      - RADARR_FR_API_KEY=${ANDROMEDA_RADARR_FR_API_KEY}
       - SONARR_API_KEY=${ANDROMEDA_SONARR_API_KEY}
     volumes:
       - ./recyclarr/config:/config

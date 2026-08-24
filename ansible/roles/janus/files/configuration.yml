@@ -53,6 +53,7 @@ access_control:
         - 'polaris.x'
         - 'rosetta.x'
         - 'radarr.andromeda.x'
+        - 'radarr-fr.andromeda.x'
         - 'sonarr.andromeda.x'
         - 'prowlarr.andromeda.x'
         - 'cleanuparr.andromeda.x'

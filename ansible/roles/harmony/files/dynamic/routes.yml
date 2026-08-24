@@ -89,6 +89,13 @@ http:
       service: andromeda-radarr
       tls:
         certResolver: atlas
+    andromeda-radarr-fr:
+      rule: "Host(`radarr-fr.andromeda.x`)"
+      entryPoints:
+        - websecure
+      service: andromeda-radarr-fr
+      tls:
+        certResolver: atlas
     andromeda-sonarr:
       rule: "Host(`sonarr.andromeda.x`)"
       entryPoints:
@@ -175,6 +182,10 @@ http:
       loadBalancer:
         servers:
           - url: "http://[fd22:1337:6769:30::4]:7878"
+    andromeda-radarr-fr:
+      loadBalancer:
+        servers:
+          - url: "http://[fd22:1337:6769:30::4]:7879"
     andromeda-sonarr:
       loadBalancer:
         servers:

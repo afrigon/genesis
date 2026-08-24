@@ -5,6 +5,7 @@
       - lookup('env', 'ANDROMEDA_WIREGUARD_PRIVATE_KEY') | length > 0
       - lookup('env', 'ANDROMEDA_WIREGUARD_ADDRESSES') | length > 0
       - lookup('env', 'ANDROMEDA_RADARR_API_KEY') | length > 0
+      - lookup('env', 'ANDROMEDA_RADARR_FR_API_KEY') | length > 0
       - lookup('env', 'ANDROMEDA_SONARR_API_KEY') | length > 0
       - lookup('env', 'ANDROMEDA_PROWLARR_API_KEY') | length > 0
     fail_msg: "ANDROMEDA_* secrets are empty — run via op run --env-file=ansible/.env.op -- make ..."
@@ -23,6 +24,7 @@
     - cache
     - seerr
     - radarr
+    - radarr-fr
     - sonarr
     - prowlarr
     - qbittorrent
