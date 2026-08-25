@@ -1,5 +1,9 @@
 [Unit]
 Description=Media library (SSHFS through the tunnel on localhost:{{ media_source_port }})
+# titan dials the tunnel in, so mounts fail until it reconnects (e.g. after a
+# reboot); never rate-limit, or the automount dies permanently on the burst of
+# failures while the tunnel is down
+StartLimitIntervalSec=0
 
 [Mount]
 What={{ media_source }}

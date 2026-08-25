@@ -2,6 +2,9 @@
 After=docker.service
 
 [Service]
+# create the tun device before the daemon starts: tayga brings it up
+# asynchronously, so ExecStartPost would race it on a busy boot
+ExecStartPre=-/usr/sbin/tayga --mktun --config /etc/tayga.conf
 # translation adds 20 bytes of IPv6 header, so the v4 side caps at 1480
 ExecStartPost=/usr/bin/ip link set dev clat0 up mtu 1480
 ExecStartPost=/usr/bin/ip addr replace {{ clat_host_ipv4 }}/24 dev clat0

@@ -112,6 +112,8 @@ services:
     container_name: andromeda-flaresolverr
     hostname: andromeda-flaresolverr
     restart: unless-stopped
+    # its chromium instances leak; a leak must OOM this container, not the VM
+    mem_limit: 1g
     environment:
       - TZ=${TZ}
       - "HOST=::"

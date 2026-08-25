@@ -1,7 +1,9 @@
-# forwarding is required to route between clat0 and the LAN; it also makes
-# the kernel ignore RAs unless accept_ra=2, which would silently drop the
-# SLAAC GUA. proxy_ndp lets the host answer neighbor discovery for the
-# clat address, which lives behind the tun instead of on the interface.
+# forwarding is required to route between clat0 and the LAN. accept_ra=2
+# keeps kernel RA processing alive under forwarding, but only matters for
+# renderers that rely on it: systemd-networkd (the netplan renderer on the
+# VMs) processes RAs in userspace and pins the kernel knob to 0 itself.
+# proxy_ndp lets the host answer neighbor discovery for the clat address,
+# which lives behind the tun instead of on the interface.
 net.ipv6.conf.all.forwarding = 1
 net.ipv6.conf.{{ clat_interface }}.accept_ra = 2
 net.ipv6.conf.{{ clat_interface }}.proxy_ndp = 1

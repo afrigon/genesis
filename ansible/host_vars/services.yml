@@ -1,6 +1,10 @@
 ---
 host_description: Services / Application services host
 
+# This host runs near its memory allocation; swap absorbs bursts (FlareSolverr
+# chromium sessions) that would otherwise thrash or OOM the whole VM.
+swap_size: 2G
+
 # The media library lives on titan, which keeps a reverse tunnel open to this
 # host (ssh -R <media_source_port>:localhost:22) — titan dials in, so no
 # services→trusted flow exists and no client address appears in config.

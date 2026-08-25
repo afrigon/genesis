@@ -15,8 +15,12 @@ resource "proxmox_virtual_environment_file" "network_config" {
           accept-ra: true
           addresses:
             - ${var.ipv6_address}/64%{ if var.ipv4 != null }
-            - ${var.ipv4.address}
+            - ${var.ipv4.address}%{ endif }
           routes:
+            # RA still supplies the SLAAC GUA; the default route is static so
+            # reachability does not depend on RA processing staying alive.
+            - to: default
+              via: ${cidrhost("${var.ipv6_address}/64", 1)}%{ if var.ipv4 != null }
             - to: default
               via: ${var.ipv4.gateway}%{ endif }
     EOT
@@ -70,6 +74,11 @@ resource "proxmox_virtual_environment_vm" "this" {
     vlan_id = var.vlan
   }
 
+  # cloud images ship a serial getty; without a serial device it restart-loops
+  serial_device {
+    device = "socket"
+  }
+
   initialization {
     datastore_id = var.datastore
 
@@ -79,5 +88,19 @@ resource "proxmox_virtual_environment_vm" "this" {
 
   operating_system {
     type = "l26"
+  }
+
+  # never let the provider reboot VMs itself: a hardware change would trigger
+  # a fleet-wide reboot mid-apply, taking polaris (DNS) down with it. Hardware
+  # changes stay pending until the operator stop/starts the VM.
+  reboot_after_update = false
+
+  # snippet files are immutable to the provider: editing one replaces the file
+  # resource, and a changed file id would force-replace the VM (destroying its
+  # disk). Proxmox reads the snippet when the VM starts, so snippet edits reach
+  # live VMs on their next stop/start; initialization changes only apply in
+  # full to freshly created VMs.
+  lifecycle {
+    ignore_changes = [initialization]
   }
 }

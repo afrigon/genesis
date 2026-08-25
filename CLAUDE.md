@@ -109,7 +109,12 @@ The gateway (vanguard) is always at `{prefix}::1` on every VLAN.
 - **WAN:** DHCPv6 (with prefix delegation from the ISP).
 - **Dual prefixes:** hosts get a ULA address (internal communication, DNS,
   static config) plus a GUA via SLAAC from the ISP-delegated prefix (outbound
-  internet). Never hard-code GUAs — the delegated prefix can change.
+  internet). Never hard-code GUAs — the delegated prefix can change. VMs also
+  pin a static default route via their VLAN gateway (netplan, in
+  `terraform/proxmox/modules/vm`); the RA-learned route only supplements it,
+  so reachability never depends on RA processing — systemd-networkd abandons
+  an interface after repeated configuration failures (seen under a
+  memory-pressure stall), and the RA route silently expires with it.
 - **DNS:** polaris is a three-container stack on the `core` VM (`30::3`):
   `polaris-filter` (AdGuard, host network — needs real client source IPs) →
   `polaris-resolver` (Knot Resolver: forwarding + DNS64, synthesizing
@@ -145,8 +150,10 @@ The gateway (vanguard) is always at `{prefix}::1` on every VLAN.
   through the host's routing. Gotchas the role handles (do not re-learn
   these): the VM's translation address (`…:30::464`) lives behind the tun, so
   the host answers neighbor discovery for it via proxy-ND; translation
-  requires IPv6 forwarding, which makes the kernel discard RAs — and lose the
-  SLAAC GUA — unless `accept_ra=2`; docker's ip6tables default-drops the
+  requires IPv6 forwarding, which disables kernel RA processing unless
+  `accept_ra=2` — moot on the VMs, where systemd-networkd (the netplan
+  renderer) processes RAs in userspace and pins the kernel knob to 0 itself,
+  so the GUA survives forwarding either way; docker's ip6tables default-drops the
   clat0 ↔ LAN forward path, so the tayga unit inserts accepts into
   `DOCKER-USER` (the chain docker never flushes) and orders itself
   `After=docker.service`. Point integrations at v4 devices by IP literal, not
@@ -225,14 +232,37 @@ name rationale — lives in `services.md`. New services are added there first.
 ## Tooling
 
 - **Terraform** — provisions resources on Proxmox (VMs, LXC containers).
+- **VM base config (`terraform/proxmox/modules/vm`).** Cloud-init snippet
+  files are immutable to the provider: an edit replaces the file resource, and
+  the changed file id would force-replace the VM — destroying its disk — so
+  the VM resource ignores `initialization` changes. A snippet edit reaches a
+  live VM on its next stop/start (Proxmox rebuilds the cloud-init drive at
+  start; the new instance-id makes cloud-init reapply config — and regenerate
+  SSH host keys, so expect known_hosts warnings); other `initialization`
+  changes apply in full only to freshly created VMs. The provider is barred
+  from rebooting VMs on update (`reboot_after_update = false` — it would
+  otherwise roll the whole fleet mid-apply, DNS included), so hardware changes
+  also wait for an operator stop/start. The Debian image URL
+  tracks `latest` with `overwrite = false`, so an upstream re-release never
+  replaces the local file (that replacement also cascades into every VM disk).
+  Every VM attaches a serial socket — the cloud image ships a serial getty
+  that restart-loops without a device — and gets a swap file from the
+  `common` role (`swap_size`, group default in `group_vars/vms.yml`): without
+  swap, memory pressure evicts executable pages and thrashes the disk instead
+  of paging out idle memory.
 - **Ansible** — configures vanguard (VyOS) and all guests over SSH. Every
   managed host has the same login user as the local workstation, pre-seeded
   with the operator's SSH key; the SSH client authenticates through the
   1Password agent socket, so the private key never leaves 1Password.
-- **Secrets — 1Password.** No secret values live in the repo. `.env.op` holds
-  `op://` reference URLs (not values); everything is run as
-  `op run --env-file=.env.op -- make <target>`, which resolves those
-  references and injects them as environment variables for that process only.
+- **Secrets — 1Password.** No secret values live in the repo. Each tool root
+  has its own `.env.op` holding `op://` reference URLs (not values) — there is
+  none at the repo root. Pair the file with the make target:
+  `ansible/.env.op` for `check`/`apply`
+  (`op run --env-file=ansible/.env.op -- make apply`), and
+  `terraform/{proxmox,unifi}/.env.op` for the matching provision root
+  (`op run --env-file=terraform/proxmox/.env.op -- make provision
+  TERRAFORM_DIRECTORY=proxmox`). `op run` resolves the references and injects
+  them as environment variables for that process only.
   Terraform consumes them via `TF_VAR_*` and the provider's env vars; Ansible
   reads them the same way (`lookup('env', ...)`). The real values exist only
   in 1Password. **Into containers**, compose files stay static (never `.j2`) and

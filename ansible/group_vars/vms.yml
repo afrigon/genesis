@@ -1,0 +1,4 @@
+---
+# Every VM gets swap so memory pressure pages out idle anon memory instead of
+# evicting executable pages and thrashing the disk (see the common role).
+swap_size: 1G

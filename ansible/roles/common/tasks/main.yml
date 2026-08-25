@@ -72,3 +72,34 @@
     group: root
     mode: "0644"
   notify: Update CA trust
+
+# Without swap the kernel can't page out idle anonymous memory, so pressure
+# evicts executable pages instead and the host thrashes the disk.
+- name: Configure swap
+  when: swap_size is defined
+  block:
+    - name: Create swap file
+      ansible.builtin.command: fallocate -l {{ swap_size }} /swapfile
+      args:
+        creates: /swapfile
+      register: swap_file
+
+    - name: Restrict swap file permissions
+      ansible.builtin.file:
+        path: /swapfile
+        owner: root
+        group: root
+        mode: "0600"
+
+    - name: Format swap file
+      ansible.builtin.command: mkswap /swapfile
+      when: swap_file is changed
+
+    - name: Persist swap in fstab
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        line: /swapfile none swap sw 0 0
+
+    - name: Activate swap
+      ansible.builtin.command: swapon /swapfile
+      when: swap_file is changed
