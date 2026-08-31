@@ -1,0 +1,12 @@
+[secrets]
+# unity (UniFi controller API key — Settings > Control Plane > Integrations)
+UNIFI_API_KEY = { provider = "op", value = "unity.x/api key" }
+
+# Operator public key authorized for device SSH (same key as every other host)
+TF_VAR_ssh_public_key = { provider = "op", value = "op://Personal/xehos SSH Key/public key" }
+
+# Wi-Fi passphrases
+TF_VAR_wifi_password_trusted = { provider = "op", value = "wlan/x password" }
+TF_VAR_wifi_password_iot = { provider = "op", value = "wlan/x-iot password" }
+TF_VAR_wifi_password_guest = { provider = "op", value = "wlan/x-guest password" }
+TF_VAR_wifi_password_dualstack = { provider = "op", value = "wlan/x-dualstack password" }
