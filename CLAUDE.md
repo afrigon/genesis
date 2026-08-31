@@ -254,15 +254,22 @@ name rationale — lives in `services.md`. New services are added there first.
   managed host has the same login user as the local workstation, pre-seeded
   with the operator's SSH key; the SSH client authenticates through the
   1Password agent socket, so the private key never leaves 1Password.
-- **Secrets — 1Password.** No secret values live in the repo. Each tool root
-  has its own `.env.op` holding `op://` reference URLs (not values) — there is
-  none at the repo root. Pair the file with the make target:
-  `ansible/.env.op` for `check`/`apply`
-  (`op run --env-file=ansible/.env.op -- make apply`), and
-  `terraform/{proxmox,unifi}/.env.op` for the matching provision root
-  (`op run --env-file=terraform/proxmox/.env.op -- make provision
-  TERRAFORM_DIRECTORY=proxmox`). `op run` resolves the references and injects
-  them as environment variables for that process only.
+- **mise — toolchain and tasks.** `mise.toml` pins terraform and ansible,
+  with exact resolutions locked in the committed `mise.lock` (upgrades are
+  deliberate: `mise lock --bump`, landed as a commit). It also defines the
+  task surface: `mise run check` / `mise run apply` (optionally
+  `--limit <host> --tags <service>`) for Ansible,
+  `mise run provision[-check] <root>` for a Terraform root (`proxmox`,
+  `unifi`), `mise run install` for collections, and `mise run help` to list
+  hosts, tags, and roots. Non-secret environment (operator usernames,
+  `AWS_PROFILE` for the S3 backend) lives in mise's `[env]`.
+- **Secrets — 1Password via fnox.** No secret values live in the repo. The
+  root `fnox.toml` declares the 1Password provider (`genesis` vault); each
+  tool root has its own `fnox.toml` whose `[secrets]` entries hold vault
+  references (not values), so a run sees only its root's secrets. The mise
+  tasks wrap their commands in `fnox exec` from the tool root, which resolves
+  the references and injects them as environment variables for that process
+  only; the per-machine encrypted cache (`fnox.local.toml`) is git-ignored.
   Terraform consumes them via `TF_VAR_*` and the provider's env vars; Ansible
   reads them the same way (`lookup('env', ...)`). The real values exist only
   in 1Password. **Into containers**, compose files stay static (never `.j2`) and
@@ -280,7 +287,7 @@ name rationale — lives in `services.md`. New services are added there first.
   declarative: rendered every run, container recreated on change. Per-host
   playbooks (`core.yml`, `services.yml`, `edge.yml`, `unity.yml`) list
   `common`, `docker`, then the host's service roles, each tagged with its name
-  for `make apply ANSIBLE_LIMIT=<host> ANSIBLE_TAGS=<service>`. The one
+  for `mise run apply --limit <host> --tags <service>`. The one
   non-Compose service is unity: UniFi OS Server is an installer-managed
   rootless-podman appliance — its role runs the installer once and the
   product self-manages from there.
@@ -341,7 +348,8 @@ restructured as the project grows.
 
 - **Never run commands against the live infrastructure.** The agent does not
   touch vanguard, sol, the VMs, or any managed host — no raw SSH, no ad-hoc
-  Ansible, no `make check`/`make apply`/`terraform apply`, and **not even
+  Ansible, no `mise run check`/`mise run apply`/`terraform apply`, and **not
+  even
   read-only diagnostics** (`show ipv6 neighbors`, `monitor log`, `docker ps`,
   etc.). The operator runs everything by hand. The agent's job is to produce
   the exact command(s) and say **where to run them** (e.g. "on vanguard",

@@ -1,0 +1,11 @@
+[secrets]
+# Proxmox API token. Create it on sol (see bootstrap.md)
+# Format: USER@REALM!TOKENID=UUID
+PROXMOX_VE_API_TOKEN = { provider = "op", value = "Proxmox API Key/credential" }
+
+# Proxmox SSH key
+PROXMOX_VE_SSH_PRIVATE_KEY = { provider = "op", value = "op://Personal/xehos SSH Key/private key" }
+
+# OpenSSH public key authorized on every VM (one line)
+# Format: ssh-ed25519 AAAA... name
+TF_VAR_ssh_public_key = { provider = "op", value = "op://Personal/xehos SSH Key/public key" }

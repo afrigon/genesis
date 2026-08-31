@@ -3,6 +3,10 @@
 
 # Local environment / secrets (never committed)
 .env
+fnox.local.toml
+
+# Personal mise overrides
+mise.local.toml
 
 # Ansible
 *.retry

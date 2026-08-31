@@ -1,0 +1,67 @@
+[settings]
+lockfile = true
+
+[tools]
+terraform = "1"
+# pipx backs the registry's ansible package (it refuses uvx)
+pipx = "1"
+ansible = "14"
+
+[env]
+ANSIBLE_CONFIG = "{{config_root}}/ansible/ansible.cfg"
+# AWS profile for the S3 terraform backend
+AWS_PROFILE = "xehos"
+PROXMOX_VE_SSH_USERNAME = "xehos"
+# User to configure on every VM and UniFi device
+TF_VAR_username = "xehos"
+
+[tasks.help]
+description = "List hosts (--limit), service tags (--tags), and terraform roots"
+dir = "ansible"
+run = '''
+echo "Hosts and groups (--limit):"
+ansible-inventory --graph
+echo
+echo "Services (--tags):"
+ansible-playbook playbooks/site.yml --list-tags 2>/dev/null \
+  | grep -oE 'TASK TAGS: \[.*\]' | sed -E 's/TASK TAGS: \[(.*)\]/\1/; s/, /\n/g' \
+  | sort -u | sed 's/^/  /'
+echo
+echo "Terraform roots (provision <directory>):"
+ls -d ../terraform/*/ | sed -E 's#\.\./terraform/(.+)/#  \1#'
+'''
+
+[tasks.install]
+description = "Install Ansible collections"
+dir = "ansible"
+run = "ansible-galaxy collection install -r requirements.yml"
+
+[tasks.check]
+description = "Dry-run site.yml (--check --diff)"
+dir = "ansible"
+usage = '''
+flag "--limit <limit>" help="Hosts or groups to target"
+flag "--tags <tags>" help="Service tags to run"
+'''
+run = 'fnox exec -- ansible-playbook playbooks/site.yml --check --diff ${usage_limit:+--limit "$usage_limit"} ${usage_tags:+--tags "$usage_tags"}'
+
+[tasks.apply]
+description = "Apply site.yml"
+dir = "ansible"
+usage = '''
+flag "--limit <limit>" help="Hosts or groups to target"
+flag "--tags <tags>" help="Service tags to run"
+'''
+run = 'fnox exec -- ansible-playbook playbooks/site.yml ${usage_limit:+--limit "$usage_limit"} ${usage_tags:+--tags "$usage_tags"}'
+
+[tasks.provision-check]
+description = "terraform plan"
+dir = "terraform"
+usage = 'arg "<directory>" help="Terraform root (proxmox, unifi)"'
+run = 'cd "$usage_directory" && fnox exec -- terraform init && fnox exec -- terraform plan'
+
+[tasks.provision]
+description = "terraform apply"
+dir = "terraform"
+usage = 'arg "<directory>" help="Terraform root (proxmox, unifi)"'
+run = 'cd "$usage_directory" && fnox exec -- terraform init && fnox exec -- terraform apply'
