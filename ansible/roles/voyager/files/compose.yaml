@@ -1,0 +1,29 @@
+services:
+  voyager:
+    image: ghcr.io/advplyr/audiobookshelf:2.36.0
+    container_name: voyager
+    hostname: voyager
+    restart: unless-stopped
+    user: "1000:1000"
+    environment:
+      - TZ=${TZ}
+      - HOST=::
+      - PORT=13378
+      # the OIDC backchannel dials auth.voyager.x through harmony; node
+      # ignores the host trust store, so atlas's root is handed in explicitly
+      - NODE_EXTRA_CA_CERTS=/certs/x-root-ca.crt
+    ports:
+      - "13378:13378"
+    volumes:
+      - ./config:/config
+      - ./metadata:/metadata
+      - /mnt/media:/media
+      - /usr/local/share/ca-certificates/x-root-ca.crt:/certs/x-root-ca.crt:ro
+
+networks:
+  default:
+    enable_ipv4: false
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: fd23:1337:6769:12::/64

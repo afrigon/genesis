@@ -47,6 +47,7 @@ All run in containers on sol's VMs: DNS + CA on `core` and apps on `services`
 | lyra      | Music Assistant              | Music library / multi-room streaming |
 | kepler    | n8n                          | Workflow automation           |
 | andromeda | Jellyfin + servarr            | Media server                  |
+| voyager   | Audiobookshelf               | Audiobook & ebook library     |
 | nebula    | Immich                       | Photo management              |
 
 ### Untrusted VLAN (60)
@@ -100,6 +101,7 @@ reach it, it can only reach the internet.
 - **lyra** — Orpheus's lyre drawn in the sky, the instrument among the constellations; music
 - **kepler** — orbital mechanics; scheduled workflows
 - **andromeda** — a galaxy of media
+- **voyager** — carries the Golden Record, recorded voices and stories for whoever finds them; audiobooks
 - **nebula** — colorful clouds captured in pictures; photos
 - **europa** — an icy world to explore; minecraft
 - **probe** — expendable craft sent to execute a task; CI runner

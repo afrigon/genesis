@@ -26,10 +26,14 @@ ANDROMEDA_RADARR_FR_API_KEY = { provider = "op", value = "andromeda.x/radarr-fr-
 ANDROMEDA_SONARR_API_KEY = { provider = "op", value = "andromeda.x/sonarr-api-key" }
 ANDROMEDA_PROWLARR_API_KEY = { provider = "op", value = "andromeda.x/prowlarr-api-key" }
 
-# janus (Authelia)
+# janus (Authelia) — the OIDC digest is derived from voyager's plaintext
+# client secret (same item), which is entered in voyager's authentication UI
 JANUS_SESSION_SECRET = { provider = "op", value = "janus.x/session-secret" }
 JANUS_STORAGE_ENCRYPTION_KEY = { provider = "op", value = "janus.x/storage-encryption-key" }
 JANUS_RESET_JWT_SECRET = { provider = "op", value = "janus.x/reset-jwt-secret" }
+JANUS_OIDC_HMAC_SECRET = { provider = "op", value = "janus.x/oidc-hmac-secret" }
+JANUS_OIDC_JWKS_KEY = { provider = "op", value = "janus.x/oidc-jwks-key" }
+JANUS_OIDC_VOYAGER_CLIENT_SECRET_DIGEST = { provider = "op", value = "voyager.x/oidc-client-secret-digest" }
 
 # tycho (lldap) — janus-password is the Authelia bind account, shared with janus;
 # andromeda-password is Jellyfin's LDAP bind account (entered in its plugin UI)

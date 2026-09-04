@@ -14,3 +14,4 @@
     - { role: lyra, tags: lyra }
     - { role: media, tags: media }
     - { role: andromeda, tags: andromeda }
+    - { role: voyager, tags: voyager }
