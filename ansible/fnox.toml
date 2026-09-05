@@ -11,36 +11,36 @@ UNITY_MONGO_PASSWORD = { provider = "op", value = "Unity MongoDB/unifi-password"
 POLARIS_TSIG_SECRET = { provider = "op", value = "Polaris TSIG/secret" }
 
 # echo (MQTT broker) — per-client credentials, shared with gaia and rosetta
-ECHO_GAIA_PASSWORD = { provider = "op", value = "echo.x/gaia-password" }
-ECHO_ROSETTA_PASSWORD = { provider = "op", value = "echo.x/rosetta-password" }
+ECHO_GAIA_PASSWORD = { provider = "op", value = "echo/gaia-password" }
+ECHO_ROSETTA_PASSWORD = { provider = "op", value = "echo/rosetta-password" }
 
 # rosetta (Zigbee2MQTT — Zigbee mesh encryption key, 16 comma-separated bytes)
-ROSETTA_ZIGBEE_NETWORK_KEY = { provider = "op", value = "rosetta.x/network-key" }
+ROSETTA_ZIGBEE_NETWORK_KEY = { provider = "op", value = "rosetta/network-key" }
 
 # andromeda (qBittorrent egress — Mullvad WireGuard, generated in the Mullvad
 # account UI; arr API keys pinned into the apps and shared with recyclarr)
-ANDROMEDA_WIREGUARD_PRIVATE_KEY = { provider = "op", value = "andromeda.x/wireguard-private-key" }
-ANDROMEDA_WIREGUARD_ADDRESSES = { provider = "op", value = "andromeda.x/wireguard-addresses" }
-ANDROMEDA_RADARR_API_KEY = { provider = "op", value = "andromeda.x/radarr-api-key" }
-ANDROMEDA_RADARR_FR_API_KEY = { provider = "op", value = "andromeda.x/radarr-fr-api-key" }
-ANDROMEDA_SONARR_API_KEY = { provider = "op", value = "andromeda.x/sonarr-api-key" }
-ANDROMEDA_PROWLARR_API_KEY = { provider = "op", value = "andromeda.x/prowlarr-api-key" }
+ANDROMEDA_WIREGUARD_PRIVATE_KEY = { provider = "op", value = "andromeda/wireguard-private-key" }
+ANDROMEDA_WIREGUARD_ADDRESSES = { provider = "op", value = "andromeda/wireguard-addresses" }
+ANDROMEDA_RADARR_API_KEY = { provider = "op", value = "andromeda/radarr-api-key" }
+ANDROMEDA_RADARR_FR_API_KEY = { provider = "op", value = "andromeda/radarr-fr-api-key" }
+ANDROMEDA_SONARR_API_KEY = { provider = "op", value = "andromeda/sonarr-api-key" }
+ANDROMEDA_PROWLARR_API_KEY = { provider = "op", value = "andromeda/prowlarr-api-key" }
 
 # janus (Authelia) — the OIDC digest is derived from voyager's plaintext
 # client secret (same item), which is entered in voyager's authentication UI
-JANUS_SESSION_SECRET = { provider = "op", value = "janus.x/session-secret" }
-JANUS_STORAGE_ENCRYPTION_KEY = { provider = "op", value = "janus.x/storage-encryption-key" }
-JANUS_RESET_JWT_SECRET = { provider = "op", value = "janus.x/reset-jwt-secret" }
-JANUS_OIDC_HMAC_SECRET = { provider = "op", value = "janus.x/oidc-hmac-secret" }
-JANUS_OIDC_JWKS_KEY = { provider = "op", value = "janus.x/oidc-jwks-key" }
-JANUS_OIDC_VOYAGER_CLIENT_SECRET_DIGEST = { provider = "op", value = "voyager.x/oidc-client-secret-digest" }
+JANUS_SESSION_SECRET = { provider = "op", value = "janus/session-secret" }
+JANUS_STORAGE_ENCRYPTION_KEY = { provider = "op", value = "janus/storage-encryption-key" }
+JANUS_RESET_JWT_SECRET = { provider = "op", value = "janus/reset-jwt-secret" }
+JANUS_OIDC_HMAC_SECRET = { provider = "op", value = "janus/oidc-hmac-secret" }
+JANUS_OIDC_JWKS_KEY = { provider = "op", value = "janus/oidc-jwks-key" }
+JANUS_OIDC_VOYAGER_CLIENT_SECRET_DIGEST = { provider = "op", value = "voyager/oidc-client-secret-digest" }
 
 # tycho (lldap) — janus-password is the Authelia bind account, shared with janus;
 # andromeda-password is Jellyfin's LDAP bind account (entered in its plugin UI)
-TYCHO_JWT_SECRET = { provider = "op", value = "tycho.x/jwt-secret" }
-TYCHO_KEY_SEED = { provider = "op", value = "tycho.x/key-seed" }
-TYCHO_ADMIN_PASSWORD = { provider = "op", value = "tycho.x/admin-password" }
-TYCHO_JANUS_PASSWORD = { provider = "op", value = "tycho.x/janus-password" }
-TYCHO_ANDROMEDA_PASSWORD = { provider = "op", value = "tycho.x/andromeda-password" }
-TYCHO_XEHOS_PASSWORD = { provider = "op", value = "tycho.x/password" }
-TYCHO_XEHOS_EMAIL = { provider = "op", value = "tycho.x/username" }
+TYCHO_JWT_SECRET = { provider = "op", value = "tycho/jwt-secret" }
+TYCHO_KEY_SEED = { provider = "op", value = "tycho/key-seed" }
+TYCHO_ADMIN_PASSWORD = { provider = "op", value = "tycho/admin-password" }
+TYCHO_JANUS_PASSWORD = { provider = "op", value = "tycho/janus-password" }
+TYCHO_ANDROMEDA_PASSWORD = { provider = "op", value = "tycho/andromeda-password" }
+TYCHO_XEHOS_PASSWORD = { provider = "op", value = "tycho/password" }
+TYCHO_XEHOS_EMAIL = { provider = "op", value = "tycho/username" }
