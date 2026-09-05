@@ -5,7 +5,10 @@ lockfile = true
 terraform = "1"
 # pipx backs the registry's ansible package (it refuses uvx)
 pipx = "1"
-ansible = "14"
+# --include-deps restores the backend default this override drops (the ansible
+# bundle's binaries come from its ansible-core dependency); the preinstall gives
+# vanguard's network_cli connection an SSH library inside the venv
+ansible = { version = "14", pipx_args = "--include-deps --preinstall ansible-pylibssh" }
 
 [env]
 ANSIBLE_CONFIG = "{{config_root}}/ansible/ansible.cfg"

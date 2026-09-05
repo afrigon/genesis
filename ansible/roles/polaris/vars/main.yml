@@ -28,6 +28,7 @@ dns_zones:
     - { name: cleanuparr.andromeda, AAAA: 'fd22:1337:6769:70::2' }
     - { name: rosetta,      AAAA: 'fd22:1337:6769:70::2' }
     - { name: lyra,         AAAA: 'fd22:1337:6769:70::2' }
+    - { name: voyager,      AAAA: 'fd22:1337:6769:70::2' }
     - { name: janus,        AAAA: 'fd22:1337:6769:70::2' }
     - { name: tycho,        AAAA: 'fd22:1337:6769:70::2' }
     - { name: proxmox.sol,  AAAA: 'fd22:1337:6769:70::2' }
@@ -39,6 +40,7 @@ dns_zones:
     - { name: auth.unity,   AAAA: 'fd22:1337:6769:70::2' }
     - { name: auth.gaia,    AAAA: 'fd22:1337:6769:70::2' }
     - { name: auth.andromeda, AAAA: 'fd22:1337:6769:70::2' }
+    - { name: auth.voyager, AAAA: 'fd22:1337:6769:70::2' }
     - { name: auth.proxmox.sol, AAAA: 'fd22:1337:6769:70::2' }
     # sputnik is IPv4-only (SLZB-OS has IPv6 disabled); an A record is the
     # truth, and DNS64 synthesizes the AAAA for IPv6-only clients

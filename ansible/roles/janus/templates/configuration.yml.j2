@@ -20,6 +20,42 @@ authentication_backend:
     base_dn: 'dc=x'
     user: 'uid=janus,ou=people,dc=x'
 
+# OIDC provider for services whose clients can't traverse forward-auth but
+# speak OIDC natively (voyager) — the app authenticates against janus itself,
+# so TOTP still gates every login
+identity_providers:
+  oidc:
+    jwks:
+      - key_id: 'main'
+        algorithm: 'RS256'
+        use: 'sig'
+        key: |
+          {{ lookup('env', 'JANUS_OIDC_JWKS_KEY') | trim | indent(10) }}
+    clients:
+      # the digest is derived from the plaintext client secret (both in
+      # 1Password); the plaintext goes into voyager's authentication UI
+      - client_id: 'voyager'
+        client_name: 'Audiobookshelf'
+        client_secret: '{{ lookup('env', 'JANUS_OIDC_VOYAGER_CLIENT_SECRET_DIGEST') | trim }}'
+        public: false
+        authorization_policy: 'two_factor'
+        require_pkce: true
+        pkce_challenge_method: 'S256'
+        redirect_uris:
+          - 'https://voyager.x/auth/openid/callback'
+          - 'https://voyager.x/auth/openid/mobile-redirect'
+          - 'audiobookshelf://oauth'
+        scopes:
+          - 'openid'
+          - 'profile'
+          - 'email'
+          - 'groups'
+        response_types:
+          - 'code'
+        grant_types:
+          - 'authorization_code'
+        token_endpoint_auth_method: 'client_secret_basic'
+
 # default-deny: every service must declare its audience below, or nobody
 # reaches it
 access_control:
@@ -36,15 +72,18 @@ access_control:
         - 'auth.unity.x'
         - 'auth.gaia.x'
         - 'auth.andromeda.x'
+        - 'auth.voyager.x'
         - 'auth.proxmox.sol.x'
       policy: bypass
     # unity, gaia, proxmox, andromeda and qbittorrent enforce their own native
     # authentication (andromeda against tycho over LDAP — its TV/phone clients
-    # can't traverse forward-auth; seerr logs in with andromeda accounts)
+    # can't traverse forward-auth; seerr logs in with andromeda accounts);
+    # voyager's apps can't either — it authenticates in-app via OIDC (above)
     - domain:
         - 'unity.x'
         - 'gaia.x'
         - 'andromeda.x'
+        - 'voyager.x'
         - 'proxmox.sol.x'
         - 'seerr.andromeda.x'
         - 'qbittorrent.andromeda.x'
@@ -92,6 +131,9 @@ session:
     # whole media suite
     - domain: 'andromeda.x'
       authelia_url: 'https://auth.andromeda.x'
+    # auth.voyager.x is also the OIDC issuer — logins for voyager land here
+    - domain: 'voyager.x'
+      authelia_url: 'https://auth.voyager.x'
     - domain: 'proxmox.sol.x'
       authelia_url: 'https://auth.proxmox.sol.x'
 

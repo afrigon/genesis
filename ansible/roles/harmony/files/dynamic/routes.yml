@@ -20,7 +20,7 @@ http:
     # one router covers the account portal (janus.x) and every per-service
     # login portal (auth.{service}.x), so they share a single atlas cert
     janus:
-      rule: "Host(`janus.x`) || Host(`auth.polaris.x`) || Host(`auth.tycho.x`) || Host(`auth.rosetta.x`) || Host(`auth.lyra.x`) || Host(`auth.unity.x`) || Host(`auth.gaia.x`) || Host(`auth.andromeda.x`) || Host(`auth.proxmox.sol.x`)"
+      rule: "Host(`janus.x`) || Host(`auth.polaris.x`) || Host(`auth.tycho.x`) || Host(`auth.rosetta.x`) || Host(`auth.lyra.x`) || Host(`auth.unity.x`) || Host(`auth.gaia.x`) || Host(`auth.andromeda.x`) || Host(`auth.voyager.x`) || Host(`auth.proxmox.sol.x`)"
       entryPoints:
         - websecure
       service: janus
@@ -124,6 +124,13 @@ http:
       service: andromeda-cleanuparr
       tls:
         certResolver: atlas
+    voyager:
+      rule: "Host(`voyager.x`)"
+      entryPoints:
+        - websecure
+      service: voyager
+      tls:
+        certResolver: atlas
     proxmox:
       rule: "Host(`proxmox.sol.x`)"
       entryPoints:
@@ -202,6 +209,10 @@ http:
       loadBalancer:
         servers:
           - url: "http://[fd22:1337:6769:30::4]:11011"
+    voyager:
+      loadBalancer:
+        servers:
+          - url: "http://[fd22:1337:6769:30::4]:13378"
     proxmox:
       loadBalancer:
         servers:
