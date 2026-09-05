@@ -7,7 +7,7 @@ services:
     user: "1000:1000"
     environment:
       - TZ=${TZ}
-      - HOST=::
+      - "HOST=::"
       - PORT=13378
       # the OIDC backchannel dials auth.voyager.x through harmony; node
       # ignores the host trust store, so atlas's root is handed in explicitly
